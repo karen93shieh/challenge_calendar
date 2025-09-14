@@ -1,15 +1,27 @@
 
 const GH_API = "https://api.github.com";
 
+export type Repeat =
+  | { type: 'none' }
+  | { type: 'weekly' }          // repeats every week on the same weekday as startAt
+  | { type: 'daily' };          // repeats every day
+
 export type Task = {
   id: string;
   title: string;
   notes?: string;
+
+  // Calendar bits ↓
+  startAt?: number;             // epoch ms; if missing → treat as all-day on chosen date
+  endAt?: number;               // optional end time
+  repeat?: Repeat;              // none | weekly | daily
+
+  day?: 'Mon'|'Tue'|'Wed'|'Thu'|'Fri'|'Sat'|'Sun'; // legacy (kept for backward compat)
   done: boolean;
-  day: 'Mon'|'Tue'|'Wed'|'Thu'|'Fri'|'Sat'|'Sun';
+
   createdAt: number;
   dueAt?: number;
-  recurring?: { type: 'weekly'; weekday: number }; // 0-6
+  recurring?: { type: 'weekly'; weekday: number }; // legacy; safe to ignore
   updatedAt: number;
 };
 

@@ -30,27 +30,19 @@ export function usePlanner() {
     })();
   }, []);
 
-  async function addTask(partial: Omit<Task,'id'|'createdAt'|'updatedAt'>) {
+  async function addTask(partial: Omit<Task,'id'|'createdAt'|'updatedAt'|'done'>) {
     const now = Date.now();
-    const t: Task = { id: crypto.randomUUID(), createdAt: now, updatedAt: now, ...partial };
+    const t: Task = { id: crypto.randomUUID(), createdAt: now, updatedAt: now, done:false, ...partial };
     const next = [...tasks, t];
     setTasks(next);
-    try {
-      await savePlanner(cfg, { version:1, tasks: next, updatedAt: now });
-    } catch (e) {
-      console.warn('Save deferred (offline?)', e);
-    }
+    try { await savePlanner(cfg, { version:1, tasks: next, updatedAt: now }); } catch {}
   }
 
   async function updateTask(id: string, patch: Partial<Task>) {
     const now = Date.now();
     const next = tasks.map(t => t.id === id ? { ...t, ...patch, updatedAt: now } : t);
     setTasks(next);
-    try {
-      await savePlanner(cfg, { version:1, tasks: next, updatedAt: now });
-    } catch (e) {
-      console.warn('Save deferred', e);
-    }
+    try { await savePlanner(cfg, { version:1, tasks: next, updatedAt: now }); } catch {}
   }
 
   async function removeTask(id: string) {
