@@ -1,3 +1,4 @@
+# .github/workflows/pages.yml
 name: Deploy to GitHub Pages
 on:
   push:
@@ -9,6 +10,7 @@ permissions:
 concurrency:
   group: pages
   cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,9 +23,12 @@ jobs:
       - run: cp dist/index.html dist/404.html
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true   # <-- THIS enables Pages for the repo
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with: { path: 'dist' }
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
