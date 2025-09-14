@@ -2,6 +2,8 @@ import {
   startOfDay, endOfDay, isWithinInterval, addDays, eachDayOfInterval,
   startOfWeek, endOfWeek, getDay, setHours, setMinutes, format, isSameDay
 } from 'date-fns';
+import { differenceInCalendarDays, startOfDay as sod } from 'date-fns';
+
 import type { Task } from '../gistSync';
 
 // Determine which days a repeating task appears on within a window.
@@ -54,16 +56,33 @@ export function expandOccurrences(
       }
       continue;
     }
+
+    if (rep === 'biweekly') {
+        const weekday = getDay(base); // 0=Sun..6=Sat
+        const baseDay = sod(base);
+        for (const d of eachDayOfInterval({ start: rangeStart, end: rangeEnd })) {
+            if (getDay(d) !== weekday) continue;
+            const diff = differenceInCalendarDays(sod(d), baseDay);
+            if (diff >= 0 && diff % 14 === 0) {
+            const when = setMinutes(setHours(d, base.getHours()), base.getMinutes());
+            out.push({ task: t, when });
+            }
+        }
+        continue;
+        }
+
   }
 
   return out.sort((a,b)=>a.when.getTime()-b.when.getTime());
 }
 
 export function weekWindow(anchor: Date) {
-  const start = startOfWeek(anchor, { weekStartsOn: 1 }); // Mon start
-  const end = endOfWeek(anchor, { weekStartsOn: 1 });
+  // Start the week on Sunday instead of Monday
+  const start = startOfWeek(anchor, { weekStartsOn: 0 });
+  const end = endOfWeek(anchor, { weekStartsOn: 0 });
   return { start, end };
 }
+
 
 export function formatTime(ts?: number) {
   if (!ts) return '';

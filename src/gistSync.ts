@@ -3,8 +3,9 @@ const GH_API = "https://api.github.com";
 
 export type Repeat =
   | { type: 'none' }
-  | { type: 'weekly' }          // repeats every week on the same weekday as startAt
-  | { type: 'daily' };          // repeats every day
+  | { type: 'daily' }
+  | { type: 'weekly' }
+  | { type: 'biweekly' };
 
 export type Task = {
   id: string;
@@ -13,7 +14,7 @@ export type Task = {
 
   startAt?: number;        // when it starts
   endAt?: number;          // (optional) if you want explicit end times later
-  durationMin?: number;    // ← NEW: duration in minutes
+  durationMin?: number;    // duration in minutes
   repeat?: Repeat;
 
   day?: 'Mon'|'Tue'|'Wed'|'Thu'|'Fri'|'Sat'|'Sun'; // legacy
@@ -80,14 +81,31 @@ export async function loadPlanner(cfg: GistConfig, cachedEtag?: string): Promise
 }
 
 export function mergeTasks(local: Task[], remote: Task[]): Task[] {
-  const map = new Map<string, Task>();
-  for (const t of remote) map.set(t.id, t);
-  for (const t of local) {
-    const r = map.get(t.id);
-    if (!r || t.updatedAt > r.updatedAt) map.set(t.id, t);
+  // Local is the source of truth for which IDs should exist.
+  // If an ID exists only on remote, we treat it as deleted locally → drop it.
+  const localMap = new Map<string, Task>();
+  for (const t of local) localMap.set(t.id, t);
+
+  const out: Task[] = [];
+
+  // For IDs present on both sides, pick the newer by updatedAt.
+  const remoteMap = new Map(remote.map(t => [t.id, t]));
+  for (const [id, r] of remoteMap) {
+    const l = localMap.get(id);
+    if (l) {
+      out.push((l.updatedAt ?? 0) >= (r.updatedAt ?? 0) ? l : r);
+      localMap.delete(id); // handled
+    }
+    // else: exists only on remote -> treat as deleted locally -> skip
   }
-  return Array.from(map.values()).sort((a,b)=>a.createdAt-b.createdAt);
+
+  // Any remaining local-only IDs are new items → add them.
+  for (const t of localMap.values()) out.push(t);
+
+  // Stable order
+  return out.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
 }
+
 
 export async function savePlanner(cfg: GistConfig, next: PlannerDoc): Promise<{commit: string}> {
   const cachedEtag = localStorage.getItem("planner_etag") || undefined;
