@@ -44,42 +44,42 @@ export default function App() {
         ))}
       </section>
 
-      <hr className="my-6 border-zinc-800" />
+      {/* <hr className="my-6 border-zinc-800" />
 
-      <Settings />
+      <Settings /> */}
     </div>
   )
 }
 
-function Settings() {
-  function saveCreds(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const token = String(fd.get('token')||'').trim();
-    const gist = String(fd.get('gist')||'').trim();
-    localStorage.setItem('gh_token', token);
-    localStorage.setItem('gh_gist', gist);
-    alert('Saved. Reloading…');
-    location.reload();
-  }
+// function Settings() {
+//   function saveCreds(e: React.FormEvent<HTMLFormElement>) {
+//     e.preventDefault();
+//     const fd = new FormData(e.currentTarget);
+//     const token = String(fd.get('token')||'').trim();
+//     const gist = String(fd.get('gist')||'').trim();
+//     localStorage.setItem('gh_token', token);
+//     localStorage.setItem('gh_gist', gist);
+//     alert('Saved. Reloading…');
+//     location.reload();
+//   }
 
-  return (
-    <section id="settings" className="space-y-3">
-      <h2 className="text-xl font-semibold">Sync (GitHub Gist)</h2>
-      <p className="text-sm opacity-80">
-        Create a <em>secret</em> Gist with a file named <code>planner.json</code> containing:{" "}
-        <code>{`{ "version": 1, "tasks": [], "updatedAt": 0 }`}</code>.
-        {" "}Then paste your token (gist scope) and Gist ID below.
-      </p>
-      <form onSubmit={saveCreds} className="grid gap-2 max-w-xl">
-        <label className="text-sm">GitHub Token (gist scope)
-          <input name="token" className="mt-1 w-full border border-zinc-800 bg-zinc-900 rounded px-3 py-2" defaultValue={localStorage.getItem('gh_token')||''} />
-        </label>
-        <label className="text-sm">Gist ID
-          <input name="gist" className="mt-1 w-full border border-zinc-800 bg-zinc-900 rounded px-3 py-2" defaultValue={localStorage.getItem('gh_gist')||''} />
-        </label>
-        <button className="justify-self-start rounded bg-zinc-800 px-3 py-2">Save</button>
-      </form>
-    </section>
-  )
-}
+//   return (
+//     <section id="settings" className="space-y-3">
+//       <h2 className="text-xl font-semibold">Sync (GitHub Gist)</h2>
+//       <p className="text-sm opacity-80">
+//         Create a <em>secret</em> Gist with a file named <code>planner.json</code> containing:{" "}
+//         <code>{`{ "version": 1, "tasks": [], "updatedAt": 0 }`}</code>.
+//         {" "}Then paste your token (gist scope) and Gist ID below.
+//       </p>
+//       <form onSubmit={saveCreds} className="grid gap-2 max-w-xl">
+//         <label className="text-sm">GitHub Token (gist scope)
+//           <input name="token" className="mt-1 w-full border border-zinc-800 bg-zinc-900 rounded px-3 py-2" defaultValue={localStorage.getItem('gh_token')||''} />
+//         </label>
+//         <label className="text-sm">Gist ID
+//           <input name="gist" className="mt-1 w-full border border-zinc-800 bg-zinc-900 rounded px-3 py-2" defaultValue={localStorage.getItem('gh_gist')||''} />
+//         </label>
+//         <button className="justify-self-start rounded bg-zinc-800 px-3 py-2">Save</button>
+//       </form>
+//     </section>
+//   )
+// }

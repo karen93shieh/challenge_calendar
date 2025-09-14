@@ -1,10 +1,9 @@
-
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  base: '/weekly-planner-gist-pwa/', 
+  base: '/weekly-planner-gist-pwa/', // already set
   plugins: [
     react(),
     VitePWA({
@@ -13,7 +12,8 @@ export default defineConfig({
       manifest: {
         name: 'Weekly Planner',
         short_name: 'Planner',
-        start_url: '/',
+        start_url: '/weekly-planner-gist-pwa/',   // <- important
+        scope: '/weekly-planner-gist-pwa/',       // <- important
         display: 'standalone',
         background_color: '#0b0f19',
         theme_color: '#0b0f19',
@@ -23,7 +23,9 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // nice-to-have: SPA fallback within the subpath
+        navigateFallback: '/weekly-planner-gist-pwa/index.html'
       }
     })
   ]
