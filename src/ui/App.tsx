@@ -3,6 +3,7 @@ import { addDays, format, startOfDay } from 'date-fns';
 import { usePlanner } from '../usePlanner';
 import { expandOccurrences, weekWindow, formatTime } from '../lib/schedule';
 import type { Task } from '../gistSync';
+import { parseDuration, formatDuration } from '../lib/schedule';
 
 export default function App() {
   const { tasks, addTask, updateTask, removeTask, loading, error } = usePlanner();
@@ -42,43 +43,77 @@ export default function App() {
 }
 
 function AddForm({
-    onAdd,
-  }: {
-    onAdd: (t: Omit<Task, 'id' | 'done' | 'createdAt' | 'updatedAt'>) => void | Promise<void>;
-  }) {
-    return (
-    <form onSubmit={(e)=>{
-      e.preventDefault();
-      const fd = new FormData(e.currentTarget as HTMLFormElement);
-      const title = String(fd.get('title')||'').trim();
-      const date = String(fd.get('date')||'');
-      const time = String(fd.get('time')||'');
-      const repeat = String(fd.get('repeat')||'none') as 'none'|'daily'|'weekly';
-      if (!title) return;
+  onAdd,
+}: {
+  onAdd: (t: Omit<Task, "id" | "done" | "createdAt" | "updatedAt">) => void | Promise<void>;
+}) {
+  const todayStr = format(new Date(), "yyyy-MM-dd"); // e.g. 2025-09-14
 
-      let startAt: number | undefined = undefined;
-      if (date) {
-        const [y,m,d] = date.split('-').map(Number);
-        let dt = new Date(y, m-1, d);
-        if (time) {
-          const [hh, mm] = time.split(':').map(Number);
-          dt.setHours(hh||0, mm||0, 0, 0);
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget as HTMLFormElement);
+        const title = String(fd.get("title") || "").trim();
+        const date = String(fd.get("date") || "");
+        const time = String(fd.get("time") || "");
+        const duration = String(fd.get("duration") || "");
+        const repeat = String(fd.get("repeat") || "none") as
+          | "none"
+          | "daily"
+          | "weekly";
+        if (!title) return;
+
+        let startAt: number | undefined = undefined;
+        if (date) {
+          const [y, m, d] = date.split("-").map(Number);
+          let dt = new Date(y, m - 1, d);
+          if (time) {
+            const [hh, mm] = time.split(":").map(Number);
+            dt.setHours(hh || 0, mm || 0, 0, 0);
+          }
+          startAt = dt.getTime();
         }
-        startAt = dt.getTime();
-      }
 
-      onAdd({
-        title,
-        startAt,
-        repeat: repeat==='none' ? {type:'none'} : {type: repeat},
-      });
+        const durationMin = parseDuration(duration);
 
-      (e.currentTarget as HTMLFormElement).reset();
-    }} className="grid md:grid-cols-5 gap-2 mb-5">
-      <input name="title" placeholder="Add an activity…" className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2 md:col-span-2" />
-      <input name="date" type="date" className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2" />
-      <input name="time" type="time" className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2" />
-      <select name="repeat" className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2">
+        onAdd({
+          title,
+          startAt,
+          durationMin,
+          repeat: repeat === "none" ? { type: "none" } : { type: repeat },
+        });
+
+        (e.currentTarget as HTMLFormElement).reset();
+      }}
+      className="grid md:grid-cols-6 gap-2 mb-5"
+    >
+      <input
+        name="title"
+        placeholder="Add an activity…"
+        className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2 md:col-span-2"
+      />
+      <input
+        name="date"
+        type="date"
+        defaultValue={todayStr}   // ← default to today
+        className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2"
+      />
+      <input
+        name="time"
+        type="time"
+        defaultValue="00:00"      // ← default to midnight
+        className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2"
+      />
+      <input
+        name="duration"
+        placeholder="Duration (min or HH:MM)"
+        className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2"
+      />
+      <select
+        name="repeat"
+        className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2"
+      >
         <option value="none">One-time</option>
         <option value="weekly">Repeats weekly</option>
         <option value="daily">Repeats daily</option>
@@ -94,6 +129,7 @@ function DayView({ tasks, anchor, onUpdate, onDelete }:{
   onDelete: (id: string) => void
 }) {
   const occ = expandOccurrences(tasks, anchor, anchor);
+  
   return (
     <section className="space-y-2">
       {occ.length === 0 && <div className="opacity-70 text-sm">No activities today.</div>}
@@ -102,8 +138,10 @@ function DayView({ tasks, anchor, onUpdate, onDelete }:{
           <input type="checkbox" checked={task.done} onChange={e=>onUpdate(task.id,{ done: e.target.checked })}/>
           <div className="flex-1">
             <div className="font-medium">{task.title}</div>
-            <div className="text-xs opacity-70">{format(when,'EEE MMM d')} {formatTime(when.getTime())}</div>
-          </div>
+            <div className="text-xs opacity-70">
+              {task.startAt ? format(when,'EEE MMM d HH:mm') : format(when,'EEE MMM d')} 
+              {formatDuration(task.durationMin) ? ` (${formatDuration(task.durationMin)})` : ''}
+            </div>          </div>
           <button className="text-xs underline opacity-80" onClick={()=>onDelete(task.id)}>delete</button>
         </article>
       ))}
@@ -129,8 +167,10 @@ function WeekView({ tasks, anchor, onUpdate, onDelete }:{
           <div className="space-y-2">
             {occ.filter(o=>o.when.toDateString()===d.toDateString()).map(({task, when})=>(
               <div key={task.id + when.getTime()} className="border border-zinc-800 rounded p-2">
-                <div className="text-xs opacity-70">{formatTime(when.getTime()) || 'All day'}</div>
-                <div className="flex items-start gap-2">
+                  <div className="text-xs opacity-70">
+                    {formatTime(when.getTime()) || 'All day'}
+                    {formatDuration(task.durationMin) ? ` (${formatDuration(task.durationMin)})` : ''}
+                  </div>                <div className="flex items-start gap-2">
                   <input type="checkbox" checked={task.done} onChange={e=>onUpdate(task.id,{ done: e.target.checked })}/>
                   <div className="flex-1">
                     <div className="text-sm">{task.title}</div>

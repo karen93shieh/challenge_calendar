@@ -11,19 +11,20 @@ export type Task = {
   title: string;
   notes?: string;
 
-  // Calendar bits ↓
-  startAt?: number;             // epoch ms; if missing → treat as all-day on chosen date
-  endAt?: number;               // optional end time
-  repeat?: Repeat;              // none | weekly | daily
+  startAt?: number;        // when it starts
+  endAt?: number;          // (optional) if you want explicit end times later
+  durationMin?: number;    // ← NEW: duration in minutes
+  repeat?: Repeat;
 
-  day?: 'Mon'|'Tue'|'Wed'|'Thu'|'Fri'|'Sat'|'Sun'; // legacy (kept for backward compat)
+  day?: 'Mon'|'Tue'|'Wed'|'Thu'|'Fri'|'Sat'|'Sun'; // legacy
   done: boolean;
 
   createdAt: number;
   dueAt?: number;
-  recurring?: { type: 'weekly'; weekday: number }; // legacy; safe to ignore
+  recurring?: { type: 'weekly'; weekday: number }; // legacy
   updatedAt: number;
 };
+
 
 export type PlannerDoc = {
   version: 1;

@@ -42,3 +42,23 @@ The app works offline; it updates itself when you revisit (service worker autoUp
 ## Notes
 - This app is single-user by design. Keep your gist **secret**.
 - If you later want real local notifications, wrap the PWA with Capacitor.
+
+
+
+
+To run
+
+```bash
+npm run build
+cp dist/index.html dist/404.html
+
+git worktree add gh-pages
+rm -rf gh-pages/*
+cp -r dist/* gh-pages/
+cd gh-pages
+git add .
+git commit -m "update: default date today + time 00:00"
+git push origin HEAD:gh-pages
+cd ..
+git worktree remove gh-pages
+```

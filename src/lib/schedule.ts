@@ -69,3 +69,26 @@ export function formatTime(ts?: number) {
   if (!ts) return '';
   return format(new Date(ts), 'HH:mm');
 }
+
+export function formatDuration(min?: number) {
+  if (!min || min <= 0) return '';
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h && m) return `${h}h ${m}m`;
+  if (h) return `${h}h`;
+  return `${m}m`;
+}
+
+// Accepts "90", "1:30", "01:30", or "45"
+export function parseDuration(input: string): number | undefined {
+  const s = input.trim();
+  if (!s) return undefined;
+  if (s.includes(':')) {
+    const [hh, mm] = s.split(':').map(n => Number(n));
+    if (Number.isFinite(hh) && Number.isFinite(mm)) return hh * 60 + mm;
+    return undefined;
+  }
+  const mins = Number(s);
+  return Number.isFinite(mins) ? mins : undefined;
+}
+
