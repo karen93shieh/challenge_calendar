@@ -1,12 +1,38 @@
 import {
   startOfDay, endOfDay, isWithinInterval, addDays, eachDayOfInterval,
-  startOfWeek, endOfWeek, getDay, setHours, setMinutes, format, isSameDay
+  startOfWeek, endOfWeek, getDay, setHours, setMinutes, format
 } from 'date-fns';
 import { differenceInCalendarDays, startOfDay as sod } from 'date-fns';
+import type { Task, CompletionMap } from '../gistSync';
 
-import type { Task } from '../gistSync';
+// ── Instance key helpers ──────────────────────────────────────────────────────
+// We key completion by the specific rendered "occurrence".
+export function instanceKey(when: Date, repeatType: Task['repeat'] extends infer R ? R : any): string {
+  const yyyy = when.getFullYear();
+  const mm = String(when.getMonth() + 1).padStart(2, '0');
+  const dd = String(when.getDate()).padStart(2, '0');
+  const hh = String(when.getHours()).padStart(2, '0');
+  const mi = String(when.getMinutes()).padStart(2, '0');
 
-// Determine which days a repeating task appears on within a window.
+  const base = `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+  const t = (repeatType as any)?.type ?? 'none';
+  return `${t}:${base}`;
+}
+
+export function isCompletedAt(task: Task, when: Date): boolean {
+  const key = instanceKey(when, task.repeat);
+  return !!task.completion?.[key];
+}
+
+export function setCompletedAt(task: Task, when: Date, done: boolean): Task {
+  const key = instanceKey(when, task.repeat);
+  const map: CompletionMap = { ...(task.completion ?? {}) };
+  if (done) map[key] = true;
+  else delete map[key];
+  return { ...task, completion: map };
+}
+
+// ── Recurrence expansion (kept from your structure) ───────────────────────────
 export function expandOccurrences(
   tasks: Task[],
   rangeStart: Date,
@@ -39,7 +65,6 @@ export function expandOccurrences(
 
     if (rep === 'daily') {
       for (const d of eachDayOfInterval({ start: rangeStart, end: rangeEnd })) {
-        // keep the time of day from base
         const when = setMinutes(setHours(d, base.getHours()), base.getMinutes());
         out.push({ task: t, when });
       }
@@ -58,31 +83,29 @@ export function expandOccurrences(
     }
 
     if (rep === 'biweekly') {
-        const weekday = getDay(base); // 0=Sun..6=Sat
-        const baseDay = sod(base);
-        for (const d of eachDayOfInterval({ start: rangeStart, end: rangeEnd })) {
-            if (getDay(d) !== weekday) continue;
-            const diff = differenceInCalendarDays(sod(d), baseDay);
-            if (diff >= 0 && diff % 14 === 0) {
-            const when = setMinutes(setHours(d, base.getHours()), base.getMinutes());
-            out.push({ task: t, when });
-            }
+      const weekday = getDay(base);
+      const baseDay = sod(base);
+      for (const d of eachDayOfInterval({ start: rangeStart, end: rangeEnd })) {
+        if (getDay(d) !== weekday) continue;
+        const diff = differenceInCalendarDays(sod(d), baseDay);
+        if (diff >= 0 && diff % 14 === 0) {
+          const when = setMinutes(setHours(d, base.getHours()), base.getMinutes());
+          out.push({ task: t, when });
         }
-        continue;
-        }
-
+      }
+      continue;
+    }
   }
 
   return out.sort((a,b)=>a.when.getTime()-b.when.getTime());
 }
 
 export function weekWindow(anchor: Date) {
-  // Start the week on Sunday instead of Monday
+  // Start the week on Sunday instead of Monday (as in your file)
   const start = startOfWeek(anchor, { weekStartsOn: 0 });
-  const end = endOfWeek(anchor, { weekStartsOn: 0 });
+  const end = endOfWeek(anchor,   { weekStartsOn: 0 });
   return { start, end };
 }
-
 
 export function formatTime(ts?: number) {
   if (!ts) return '';
@@ -110,4 +133,3 @@ export function parseDuration(input: string): number | undefined {
   const mins = Number(s);
   return Number.isFinite(mins) ? mins : undefined;
 }
-

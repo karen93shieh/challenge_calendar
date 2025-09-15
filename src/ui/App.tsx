@@ -8,10 +8,11 @@ import {
   formatTime,
   formatDuration,
   parseDuration,
+  isCompletedAt,
 } from '../lib/schedule';
 
 export default function App() {
-  const { tasks, addTask, updateTask, removeTask, loading, error } = usePlanner();
+  const { tasks, addTask, updateTask, removeTask, loading, error, setDoneForOccurrence } = usePlanner();
   const [view, setView] = useState<'day' | 'week'>('week');
   const [anchor, setAnchor] = useState<Date>(startOfDay(new Date()));
   const [confirmTask, setConfirmTask] = useState<Task | null>(null);
@@ -69,23 +70,30 @@ export default function App() {
 
       {error && <div className="text-red-400 mb-3">{error}</div>}
 
-      <AddForm onAdd={addTask} />
+      <AddForm onAdd={async (partial) => {
+        // normalize incoming shape to your Task minus IDs/timestamps
+        await addTask({
+          title: partial.title,
+          notes: partial.notes,
+          startAt: partial.startAt,
+          durationMin: partial.durationMin,
+          repeat: partial.repeat,
+        });
+      }} />
 
       {view === 'week' ? (
         <WeekView
           tasks={tasks}
           anchor={anchor}
-          onUpdate={updateTask}
-          onDelete={removeTask}
-          setConfirmTask={setConfirmTask}
+          onToggle={(task, when, checked) => setDoneForOccurrence(task.id, when, checked)}
+          onDelete={(t) => setConfirmTask(t)}
         />
       ) : (
         <DayView
           tasks={tasks}
           anchor={anchor}
-          onUpdate={updateTask}
-          onDelete={removeTask}
-          setConfirmTask={setConfirmTask}
+          onToggle={(task, when, checked) => setDoneForOccurrence(task.id, when, checked)}
+          onDelete={(t) => setConfirmTask(t)}
         />
       )}
 
@@ -106,8 +114,8 @@ export default function App() {
               </button>
               <button
                 className="px-4 py-2 rounded bg-red-600 hover:bg-red-500"
-                onClick={() => {
-                  removeTask(confirmTask.id);
+                onClick={async () => {
+                  await removeTask(confirmTask.id);
                   setConfirmTask(null);
                 }}
               >
@@ -128,7 +136,7 @@ import { format as dfFormat } from 'date-fns';
 function AddForm({
   onAdd,
 }: {
-  onAdd: (t: Omit<Task, 'id' | 'done' | 'createdAt' | 'updatedAt'>) => void | Promise<void>;
+  onAdd: (t: Omit<Task, 'id' | 'completion' | 'createdAt' | 'updatedAt' | 'done'>) => void | Promise<void>;
 }) {
   const todayStr = dfFormat(new Date(), 'yyyy-MM-dd'); // default Date: today
 
@@ -152,7 +160,7 @@ function AddForm({
             const [hh, mm] = time.split(':').map(Number);
             dt.setHours(hh || 0, mm || 0, 0, 0);
           } else {
-            dt.setHours(0, 0, 0, 0); // explicit midnight if no time
+            dt.setHours(0, 0, 0, 0);
           }
           startAt = dt.getTime();
         }
@@ -200,7 +208,7 @@ function AddForm({
       <select name="repeat" className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2">
         <option value="none">One-time</option>
         <option value="daily">Day</option>
-        <option value="weekly">Week</option>
+        <option value="weekly">Weekly</option>
         <option value="biweekly">Biweekly</option>
       </select>
 
@@ -214,15 +222,13 @@ function AddForm({
 function DayView({
   tasks,
   anchor,
-  onUpdate,
+  onToggle,
   onDelete,
-  setConfirmTask,
 }: {
   tasks: Task[];
   anchor: Date;
-  onUpdate: (id: string, patch: Partial<Task>) => void;
-  onDelete: (id: string) => void;
-  setConfirmTask: (t: Task | null) => void;
+  onToggle: (task: Task, when: Date, checked: boolean) => void;
+  onDelete: (t: Task) => void;
 }) {
   const occ = expandOccurrences(tasks, startOfDay(anchor), endOfDay(anchor)).sort((a, b) => {
     const at = a.task.startAt ? a.when.getTime() : -1;
@@ -233,52 +239,52 @@ function DayView({
   return (
     <section className="space-y-2">
       {occ.length === 0 && <div className="opacity-70 text-sm">No activities today.</div>}
-      {occ.map(({ task, when }) => (
-        <article key={task.id + when.getTime()} className="border border-zinc-800 rounded p-3">
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              checked={task.done}
-              onChange={(e) => onUpdate(task.id, { done: e.target.checked })}
-            />
-            <div className="flex-1">
-              <div className={`font-medium ${task.done ? 'line-through opacity-50' : ''}`}>
-                {task.title}
+      {occ.map(({ task, when }) => {
+        const checked = isCompletedAt(task, when);
+        return (
+          <article key={task.id + when.getTime()} className="border border-zinc-800 rounded p-3">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(e) => onToggle(task, when, e.target.checked)}
+              />
+              <div className="flex-1">
+                <div className={`font-medium ${checked ? 'line-through opacity-50' : ''}`}>
+                  {task.title}
+                </div>
+                <div className="text-xs opacity-70">
+                  {task.startAt ? format(when, 'MM/dd/yyyy HH:mm') : 'No date'}
+                  {formatDuration(task.durationMin) ? ` (${formatDuration(task.durationMin)})` : ''}
+                </div>
               </div>
-              <div className="text-xs opacity-70">
-                {task.startAt ? format(when, 'MM/dd/yyyy HH:mm') : 'No date'}
-                {formatDuration(task.durationMin) ? ` (${formatDuration(task.durationMin)})` : ''}
-              </div>
+              <button
+                className="text-xs underline opacity-80"
+                onClick={() => onDelete(task)}
+              >
+                delete
+              </button>
             </div>
-            <button
-              className="text-xs underline opacity-80"
-              onClick={() => setConfirmTask(task)}
-            >
-              delete
-            </button>
-          </div>
-        </article>
-      ))}
+          </article>
+        );
+      })}
     </section>
   );
 }
 
 /* ───────────────────────── Week View ───────────────────────── */
 
-export function WeekView({
+function WeekView({
   tasks,
   anchor,
-  onUpdate,
+  onToggle,
   onDelete,
-  setConfirmTask,
 }: {
   tasks: Task[];
   anchor: Date;
-  onUpdate: (id: string, patch: Partial<Task>) => void;
-  onDelete: (id: string) => void;
-  setConfirmTask: (t: Task | null) => void;
+  onToggle: (task: Task, when: Date, checked: boolean) => void;
+  onDelete: (t: Task) => void;
 }) {
-  // weekWindow already Sunday→Saturday in your helper
   const { start, end } = weekWindow(anchor);
   const occ = expandOccurrences(tasks, start, end);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
@@ -300,39 +306,38 @@ export function WeekView({
 
             <div className="space-y-2">
               {dayItems.map(({ task, when }) => {
-                const timeLabel = task.startAt ? formatTime(when.getTime()) || 'All day' : 'All day';
+                const timeLabel = task.startAt ? (formatTime(when.getTime()) || 'All day') : 'All day';
                 const dur = formatDuration(task.durationMin);
+                const checked = isCompletedAt(task, when);
                 return (
                   <div key={task.id + when.getTime()} className="border border-zinc-800 rounded p-2">
                     <div className="text-xs opacity-70">
-                      {timeLabel}
-                      {dur ? ` (${dur})` : ''}
+                      {timeLabel}{dur ? ` (${dur})` : ''}
                     </div>
                     <div className="flex items-start gap-2 mt-1">
                       <input
                         type="checkbox"
                         className="h-4 w-4 mt-0.5 shrink-0"
-                        checked={task.done}
-                        onChange={(e) => onUpdate(task.id, { done: e.target.checked })}
+                        checked={checked}
+                        onChange={(e) => onToggle(task, when, e.target.checked)}
                       />
                       <div className="flex-1 leading-5">
-                        <div className={`text-sm ${task.done ? 'line-through opacity-50' : ''}`}>
+                        <div className={`text-sm ${checked ? 'line-through opacity-50' : ''}`}>
                           {task.title}
                         </div>
                         {task.notes && (
-                          <div className={`text-xs mt-0.5 ${task.done ? 'line-through opacity-50' : 'opacity-70'}`}>
+                          <div className={`text-xs mt-0.5 ${checked ? 'line-through opacity-50' : 'opacity-70'}`}>
                             {task.notes}
                           </div>
                         )}
                       </div>
                       <button
                         className="text-[11px] underline opacity-80"
-                        onClick={() => setConfirmTask(task)}
+                        onClick={() => onDelete(task)}
                       >
                         del
                       </button>
                     </div>
-
                   </div>
                 );
               })}

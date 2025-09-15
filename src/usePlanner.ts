@@ -1,6 +1,6 @@
-
 import { useEffect, useState } from 'react';
 import { loadPlanner, savePlanner, Task, PlannerDoc, GistConfig } from './gistSync';
+import { setCompletedAt } from './lib/schedule'; // path matches where you put schedule.ts
 
 const cfg: GistConfig = {
   token: localStorage.getItem('gh_token') || '',
@@ -8,21 +8,29 @@ const cfg: GistConfig = {
   fileName: 'planner.json'
 };
 
+function nowMs() { return Date.now(); }
+
 export function usePlanner() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Load
   useEffect(() => {
     (async () => {
       try {
         const etag = localStorage.getItem('planner_etag') || undefined;
         const { doc } = await loadPlanner(cfg, etag);
-        setTasks(doc.tasks);
+        // Ensure completion map exists
+        setTasks((doc.tasks || []).map(t => ({ ...t, completion: t.completion ?? {} })));
       } catch (e:any) {
         const cached = localStorage.getItem('planner_cache');
-        if (cached) setTasks(JSON.parse(cached).tasks);
-        else setTasks([]);
+        if (cached) {
+          const doc = JSON.parse(cached) as PlannerDoc;
+          setTasks((doc.tasks || []).map(t => ({ ...t, completion: t.completion ?? {} })));
+        } else {
+          setTasks([]);
+        }
         setError(e.message || 'Load error');
       } finally {
         setLoading(false);
@@ -30,30 +38,46 @@ export function usePlanner() {
     })();
   }, []);
 
-  async function addTask(partial: Omit<Task,'id'|'createdAt'|'updatedAt'|'done'>) {
-    const now = Date.now();
-    const t: Task = { id: crypto.randomUUID(), createdAt: now, updatedAt: now, done:false, ...partial };
-    const next = [...tasks, t];
-    setTasks(next);
-    try { await savePlanner(cfg, { version:1, tasks: next, updatedAt: now }); } catch {}
-  }
-
-  async function updateTask(id: string, patch: Partial<Task>) {
-    const now = Date.now();
-    const next = tasks.map(t => t.id === id ? { ...t, ...patch, updatedAt: now } : t);
-    setTasks(next);
-    try { await savePlanner(cfg, { version:1, tasks: next, updatedAt: now }); } catch {}
-  }
-
-  async function removeTask(id: string) {
-    const next = tasks.filter(t => t.id !== id);
-    setTasks(next);
+  async function persist(nextTasks: Task[]) {
+    setTasks(nextTasks);
     try {
-      await savePlanner(cfg, { version:1, tasks: next, updatedAt: Date.now() });
+      await savePlanner(cfg, { version: 2, tasks: nextTasks, updatedAt: nowMs() });
     } catch (e) {
       console.warn('Save deferred', e);
     }
   }
 
-  return { tasks, addTask, updateTask, removeTask, loading, error, setTasks };
+  async function addTask(partial: Omit<Task,'id'|'createdAt'|'updatedAt'|'completion'|'done'>) {
+    const now = nowMs();
+    const t: Task = {
+      id: crypto.randomUUID(),
+      createdAt: now,
+      updatedAt: now,
+      completion: {},
+      ...partial,
+    };
+    await persist([ ...tasks, t ]);
+  }
+
+  async function updateTask(id: string, patch: Partial<Task>) {
+    const now = nowMs();
+    const next = tasks.map(t => t.id === id ? { ...t, ...patch, updatedAt: now } : t);
+    await persist(next);
+  }
+
+  async function removeTask(id: string) {
+    await persist(tasks.filter(t => t.id !== id));
+  }
+
+  // NEW: toggle/set completion for a SPECIFIC occurrence
+  async function setDoneForOccurrence(id: string, when: Date, done: boolean) {
+    const now = nowMs();
+    const next = tasks.map(t => {
+      if (t.id !== id) return t;
+      return { ...setCompletedAt(t, when, done), updatedAt: now };
+    });
+    await persist(next);
+  }
+
+  return { tasks, addTask, updateTask, removeTask, loading, error, setDoneForOccurrence };
 }
