@@ -44,13 +44,24 @@ export function expandOccurrences(
     const base = t.startAt ? new Date(t.startAt) : undefined;
     const rep = t.repeat?.type ?? 'none';
 
+    // NEW: cutoff so recurring tasks do not appear in the past
+    // We only apply this to repeating tasks (daily/weekly/biweekly).
+    const createdCutoff = startOfDay(new Date(t.createdAt ?? Date.now()));
+    const isAllowed = (when: Date) => {
+      if (rep === 'none') return true;                 // one-time: show as usual
+      return when.getTime() >= createdCutoff.getTime(); // recurring: only today/future
+    };
+
     if (!base) {
-      // Legacy all-day: place on its "day" within the range
+      // (legacy/no startAt) — keep your existing behavior for non-recurring items
       if (t.day) {
         const map = {Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6} as const;
         const want = map[t.day];
         for (const d of eachDayOfInterval({ start: rangeStart, end: rangeEnd })) {
-          if (getDay(d) === want) out.push({ task: t, when: startOfDay(d) });
+          if (getDay(d) === want) {
+            const when = startOfDay(d);
+            if (isAllowed(when)) out.push({ task: t, when });
+          }
         }
       }
       continue;
@@ -58,6 +69,7 @@ export function expandOccurrences(
 
     if (rep === 'none') {
       if (isWithinInterval(base, { start: rangeStart, end: rangeEnd })) {
+        // one-time task: no cutoff needed
         out.push({ task: t, when: base });
       }
       continue;
@@ -66,17 +78,17 @@ export function expandOccurrences(
     if (rep === 'daily') {
       for (const d of eachDayOfInterval({ start: rangeStart, end: rangeEnd })) {
         const when = setMinutes(setHours(d, base.getHours()), base.getMinutes());
-        out.push({ task: t, when });
+        if (isAllowed(when)) out.push({ task: t, when });
       }
       continue;
     }
 
     if (rep === 'weekly') {
-      const weekday = getDay(base); // 0=Sun..6=Sat
+      const weekday = getDay(base);
       for (const d of eachDayOfInterval({ start: rangeStart, end: rangeEnd })) {
         if (getDay(d) === weekday) {
           const when = setMinutes(setHours(d, base.getHours()), base.getMinutes());
-          out.push({ task: t, when });
+          if (isAllowed(when)) out.push({ task: t, when });
         }
       }
       continue;
@@ -84,21 +96,22 @@ export function expandOccurrences(
 
     if (rep === 'biweekly') {
       const weekday = getDay(base);
-      const baseDay = sod(base);
+      const baseDay = startOfDay(base);
       for (const d of eachDayOfInterval({ start: rangeStart, end: rangeEnd })) {
         if (getDay(d) !== weekday) continue;
-        const diff = differenceInCalendarDays(sod(d), baseDay);
-        if (diff >= 0 && diff % 14 === 0) {
+        const diffDays = Math.round((startOfDay(d).getTime() - baseDay.getTime()) / 86400000);
+        if (diffDays >= 0 && diffDays % 14 === 0) {
           const when = setMinutes(setHours(d, base.getHours()), base.getMinutes());
-          out.push({ task: t, when });
+          if (isAllowed(when)) out.push({ task: t, when });
         }
       }
       continue;
     }
   }
 
-  return out.sort((a,b)=>a.when.getTime()-b.when.getTime());
+  return out.sort((a, b) => a.when.getTime() - b.when.getTime());
 }
+
 
 export function weekWindow(anchor: Date) {
   // Start the week on Sunday instead of Monday (as in your file)
