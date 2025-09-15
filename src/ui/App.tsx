@@ -22,7 +22,7 @@ export default function App() {
   if (loading) return <div className="p-6">Loading…</div>;
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="app-shell mx-auto w-full max-w-[1280px] px-3 sm:px-4 lg:px-5 pt-6 pb-6">
       <header className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl font-bold">Weekly Planner</h1>
 
