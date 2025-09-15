@@ -10,6 +10,9 @@ import {
   parseDuration,
 } from '../lib/schedule';
 
+
+
+
 export default function App() {
   const { tasks, addTask, updateTask, removeTask, loading, error } = usePlanner();
   const [view, setView] = useState<'day' | 'week'>('week');
@@ -123,6 +126,8 @@ export default function App() {
 
 import { format as dfFormat } from 'date-fns';
 
+const dateKey = (d: Date) => dfFormat(d, 'yyyy-MM-dd');
+
 function AddForm({
   onAdd,
 }: {
@@ -187,6 +192,7 @@ function AddForm({
   );
 }
 
+
 /* ───────────────────────── Day View ───────────────────────── */
 
 function DayView({
@@ -214,16 +220,30 @@ function DayView({
       {occ.map(({ task, when }) => {
         const noDuration = !task.durationMin || task.durationMin <= 0;
         const timeLabel = noDuration ? 'All day' : format(when, 'MM/dd/yyyy HH:mm');
+
+        const isRepeating = task.repeat?.type && task.repeat.type !== 'none';
+        const dk = format(when, 'yyyy-MM-dd');
+        const checked = isRepeating ? (task.doneDates?.includes(dk) ?? false) : !!task.done;
+
         return (
           <article key={task.id + when.getTime()} className="border border-zinc-800 rounded p-3">
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"
-                checked={task.done}
-                onChange={(e) => onUpdate(task.id, { done: e.target.checked })}
+                checked={checked}
+                onChange={(e) => {
+                  const next = e.target.checked;
+                  if (isRepeating) {
+                    const set = new Set(task.doneDates ?? []);
+                    next ? set.add(dk) : set.delete(dk);
+                    onUpdate(task.id, { doneDates: Array.from(set) });
+                  } else {
+                    onUpdate(task.id, { done: next });
+                  }
+                }}
               />
               <div className="flex-1">
-                <div className={`font-medium ${task.done ? 'line-through opacity-50' : ''}`}>
+                <div className={`font-medium ${checked ? 'line-through opacity-50' : ''}`}>
                   {task.title}
                 </div>
                 <div className="text-xs opacity-70">
@@ -279,6 +299,11 @@ export function WeekView({
               {dayItems.map(({ task, when }) => {
                 const noDuration = !task.durationMin || task.durationMin <= 0;
                 const timeLabel = noDuration ? 'All day' : formatTime(when.getTime());
+
+                const isRepeating = task.repeat?.type && task.repeat.type !== 'none';
+                const dk = format(when, 'yyyy-MM-dd');
+                const checked = isRepeating ? (task.doneDates?.includes(dk) ?? false) : !!task.done;
+
                 return (
                   <div key={task.id + when.getTime()} className="border border-zinc-800 rounded p-2">
                     <div className="text-xs opacity-70">
@@ -289,15 +314,24 @@ export function WeekView({
                       <input
                         type="checkbox"
                         className="h-4 w-4 mt-0.5 shrink-0"
-                        checked={task.done}
-                        onChange={(e) => onUpdate(task.id, { done: e.target.checked })}
+                        checked={checked}
+                        onChange={(e) => {
+                          const next = e.target.checked;
+                          if (isRepeating) {
+                            const set = new Set(task.doneDates ?? []);
+                            next ? set.add(dk) : set.delete(dk);
+                            onUpdate(task.id, { doneDates: Array.from(set) });
+                          } else {
+                            onUpdate(task.id, { done: next });
+                          }
+                        }}
                       />
                       <div className="flex-1 leading-5">
-                        <div className={`text-sm ${task.done ? 'line-through opacity-50' : ''}`}>
+                        <div className={`text-sm ${checked ? 'line-through opacity-50' : ''}`}>
                           {task.title}
                         </div>
                         {task.notes && (
-                          <div className={`text-xs mt-0.5 ${task.done ? 'line-through opacity-50' : 'opacity-70'}`}>
+                          <div className={`text-xs mt-0.5 ${checked ? 'line-through opacity-50' : 'opacity-70'}`}>
                             {task.notes}
                           </div>
                         )}

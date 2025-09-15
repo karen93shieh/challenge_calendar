@@ -21,6 +21,7 @@ export type Task = {
   // LEGACY (kept only for migration): day/done/recurring
   day?: 'Mon'|'Tue'|'Wed'|'Thu'|'Fri'|'Sat'|'Sun';
   done?: boolean;         // <- legacy global flag
+  doneDates?: string[];
 
   // NEW: per-occurrence completion; keys are instance IDs
   completion?: CompletionMap;
