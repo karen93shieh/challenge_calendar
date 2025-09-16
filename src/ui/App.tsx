@@ -18,6 +18,23 @@ export default function App() {
   const [view, setView] = useState<'day' | 'week'>('week');
   const [anchor, setAnchor] = useState<Date>(startOfDay(new Date()));
   const [confirmTask, setConfirmTask] = useState<{ task: Task; when?: number } | null>(null);
+  const [detailTask, setDetailTask] = useState<Task | null>(null);
+  const [editDate, setEditDate] = useState<string>('');
+  const [editTime, setEditTime] = useState<string>('00:00');
+  const [editAllDay, setEditAllDay] = useState<boolean>(false);
+
+  // Sync editors when detail task opens
+  if (detailTask && editDate === '') {
+    const d = detailTask.startAt ? new Date(detailTask.startAt) : new Date();
+    const yyyy = String(d.getFullYear());
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    setEditDate(`${yyyy}-${mm}-${dd}`);
+    setEditTime(`${hh}:${mi}`);
+    setEditAllDay(!detailTask.durationMin || detailTask.durationMin <= 0);
+  }
 
   if (loading) return <div className="p-6">Loading…</div>;
 
@@ -80,6 +97,12 @@ export default function App() {
           onUpdate={updateTask}
           onDelete={removeTask}
           setConfirmTask={(t, when) => setConfirmTask({ task: t, when })}
+          onOpenDetails={(t) => {
+            if (!t.repeat || t.repeat.type === 'none') {
+              setDetailTask(t);
+              setEditDate(''); // trigger sync
+            }
+          }}
         />
       ) : (
         <DayView
@@ -88,6 +111,12 @@ export default function App() {
           onUpdate={updateTask}
           onDelete={removeTask}
           setConfirmTask={(t, when) => setConfirmTask({ task: t, when })}
+          onOpenDetails={(t) => {
+            if (!t.repeat || t.repeat.type === 'none') {
+              setDetailTask(t);
+              setEditDate(''); // trigger sync
+            }
+          }}
         />
       )}
 
@@ -145,6 +174,90 @@ export default function App() {
                   Delete
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {detailTask && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/70 z-50">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-lg font-semibold mb-3">Edit Task</h2>
+            <div className="space-y-3">
+              <div>
+                <div className="text-xs opacity-70 mb-1">Title</div>
+                <div className="text-sm">{detailTask.title}</div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <div className="text-xs opacity-70 mb-1">Date</div>
+                  <input
+                    type="date"
+                    className="w-full border border-zinc-800 bg-zinc-900 rounded px-2 py-1"
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                  />
+                </label>
+                <label className="block">
+                  <div className="text-xs opacity-70 mb-1">Time</div>
+                  <input
+                    type="time"
+                    className="w-full border border-zinc-800 bg-zinc-900 rounded px-2 py-1"
+                    value={editTime}
+                    onChange={(e) => setEditTime(e.target.value)}
+                    disabled={editAllDay}
+                  />
+                </label>
+              </div>
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={editAllDay}
+                  onChange={(e) => setEditAllDay(e.target.checked)}
+                />
+                <span className="text-sm">All-day</span>
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                className="px-3 py-2 rounded bg-zinc-700 hover:bg-zinc-600"
+                onClick={() => {
+                  setDetailTask(null);
+                  setEditDate('');
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-3 py-2 rounded bg-emerald-600 hover:bg-emerald-500"
+                onClick={() => {
+                  if (!detailTask) return;
+                  if (!editDate) return;
+                  const [y, m, d] = editDate.split('-').map(Number);
+                  const dt = new Date(y, (m || 1) - 1, d || 1);
+                  if (!editAllDay) {
+                    const [hh, mi] = editTime.split(':').map(Number);
+                    dt.setHours(hh || 0, mi || 0, 0, 0);
+                  } else {
+                    dt.setHours(0, 0, 0, 0);
+                  }
+                  const patch: Partial<Task> = {
+                    startAt: dt.getTime(),
+                  };
+                  if (editAllDay) {
+                    patch.durationMin = undefined;
+                  } else if (!detailTask.durationMin || detailTask.durationMin <= 0) {
+                    // default duration for non all-day that previously had none
+                    patch.durationMin = 60;
+                  }
+                  updateTask(detailTask.id, patch);
+                  setDetailTask(null);
+                  setEditDate('');
+                }}
+              >
+                Save
+              </button>
             </div>
           </div>
         </div>
@@ -232,12 +345,14 @@ function DayView({
   onUpdate,
   onDelete,
   setConfirmTask,
+  onOpenDetails,
 }: {
   tasks: Task[];
   anchor: Date;
   onUpdate: (id: string, patch: Partial<Task>) => void;
   onDelete: (id: string) => void;
   setConfirmTask: (t: Task, when: number) => void;
+  onOpenDetails: (t: Task) => void;
 }) {
   const occ = expandOccurrences(tasks, startOfDay(anchor), endOfDay(anchor)).sort((a, b) => {
     const at = a.task.startAt ? a.when.getTime() : -1;
@@ -257,7 +372,10 @@ function DayView({
         const checked = isRepeating ? (task.doneDates?.includes(dk) ?? false) : !!task.done;
 
         return (
-          <article key={task.id + when.getTime()} className="border border-zinc-800 rounded p-3">
+          <article
+            key={task.id + when.getTime()}
+            className={`border rounded p-3 ${isRepeating ? 'border-white/20 bg-white/5' : 'border-zinc-800'}`}
+          >
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"
@@ -273,7 +391,7 @@ function DayView({
                   }
                 }}
               />
-              <div className="flex-1">
+              <div className="flex-1 cursor-pointer" onClick={() => { if (!isRepeating) onOpenDetails(task); }}>
                 <div className={`font-medium ${checked ? 'line-through opacity-50' : ''}`}>
                   {task.title}
                 </div>
@@ -301,12 +419,14 @@ export function WeekView({
   onUpdate,
   onDelete,
   setConfirmTask,
+  onOpenDetails,
 }: {
   tasks: Task[];
   anchor: Date;
   onUpdate: (id: string, patch: Partial<Task>) => void;
   onDelete: (id: string) => void;
   setConfirmTask: (t: Task, when: number) => void;
+  onOpenDetails: (t: Task) => void;
 }) {
   const { start, end } = weekWindow(anchor);
   const occ = expandOccurrences(tasks, start, end);
@@ -336,7 +456,10 @@ export function WeekView({
                 const checked = isRepeating ? (task.doneDates?.includes(dk) ?? false) : !!task.done;
 
                 return (
-                  <div key={task.id + when.getTime()} className="border border-zinc-800 rounded p-2">
+                  <div
+                    key={task.id + when.getTime()}
+                    className={`border rounded p-2 ${isRepeating ? 'border-white/20 bg-white/5' : 'border-zinc-800'}`}
+                  >
                     <div className="text-xs opacity-70">
                       {timeLabel}
                       {formatDuration(task.durationMin) ? ` (${formatDuration(task.durationMin)})` : ''}
@@ -357,7 +480,7 @@ export function WeekView({
                           }
                         }}
                       />
-                      <div className="flex-1 leading-5">
+                      <div className="flex-1 leading-5 cursor-pointer" onClick={() => { if (!isRepeating) onOpenDetails(task); }}>
                         <div className={`text-sm ${checked ? 'line-through opacity-50' : ''}`}>
                           {task.title}
                         </div>
