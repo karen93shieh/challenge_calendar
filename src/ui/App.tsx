@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { addDays, format, startOfDay, endOfDay } from 'date-fns';
 import { usePlanner } from '../usePlanner';
 import type { Task } from '../gistSync';
@@ -15,13 +15,20 @@ import {
 
 export default function App() {
   const { tasks, addTask, updateTask, removeTask, loading, error } = usePlanner();
-  const [view, setView] = useState<'day' | 'week'>('week');
+  const [view, setView] = useState<'day' | 'week'>(() => {
+    const v = localStorage.getItem('planner_view');
+    return v === 'day' ? 'day' : 'week';
+  });
   const [anchor, setAnchor] = useState<Date>(startOfDay(new Date()));
   const [confirmTask, setConfirmTask] = useState<{ task: Task; when?: number } | null>(null);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [editDate, setEditDate] = useState<string>('');
   const [editTime, setEditTime] = useState<string>('00:00');
   const [editAllDay, setEditAllDay] = useState<boolean>(false);
+
+  useEffect(() => {
+    localStorage.setItem('planner_view', view);
+  }, [view]);
 
   // Sync editors when detail task opens
   if (detailTask && editDate === '') {
