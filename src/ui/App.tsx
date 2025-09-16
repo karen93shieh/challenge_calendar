@@ -17,7 +17,7 @@ export default function App() {
   const { tasks, addTask, updateTask, removeTask, loading, error } = usePlanner();
   const [view, setView] = useState<'day' | 'week'>('week');
   const [anchor, setAnchor] = useState<Date>(startOfDay(new Date()));
-  const [confirmTask, setConfirmTask] = useState<Task | null>(null);
+  const [confirmTask, setConfirmTask] = useState<{ task: Task; when?: number } | null>(null);
 
   if (loading) return <div className="p-6">Loading…</div>;
 
@@ -79,7 +79,7 @@ export default function App() {
           anchor={anchor}
           onUpdate={updateTask}
           onDelete={removeTask}
-          setConfirmTask={setConfirmTask}
+          setConfirmTask={(t, when) => setConfirmTask({ task: t, when })}
         />
       ) : (
         <DayView
@@ -87,7 +87,7 @@ export default function App() {
           anchor={anchor}
           onUpdate={updateTask}
           onDelete={removeTask}
-          setConfirmTask={setConfirmTask}
+          setConfirmTask={(t, when) => setConfirmTask({ task: t, when })}
         />
       )}
 
@@ -96,24 +96,55 @@ export default function App() {
           <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 max-w-sm w-full">
             <h2 className="text-lg font-semibold mb-2">Delete Task</h2>
             <p className="mb-4">
-              Are you sure you want to delete <span className="font-medium">"{confirmTask.title}"</span>?
+              {confirmTask.task.repeat?.type && confirmTask.task.repeat.type !== 'none'
+                ? 'This is a repeating task. Delete only this occurrence or all future ones?'
+                : <>Are you sure you want to delete <span className="font-medium">"{confirmTask.task.title}"</span>?</>}
             </p>
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-wrap justify-end gap-2">
               <button
-                className="px-4 py-2 rounded bg-zinc-700 hover:bg-zinc-600"
+                className="px-3 py-2 rounded bg-zinc-700 hover:bg-zinc-600"
                 onClick={() => setConfirmTask(null)}
               >
                 Cancel
               </button>
-              <button
-                className="px-4 py-2 rounded bg-red-600 hover:bg-red-500"
-                onClick={() => {
-                  removeTask(confirmTask.id);
-                  setConfirmTask(null);
-                }}
-              >
-                Delete
-              </button>
+              {confirmTask.task.repeat?.type && confirmTask.task.repeat.type !== 'none' && confirmTask.when ? (
+                <>
+                  <button
+                    className="px-3 py-2 rounded bg-red-600 hover:bg-red-500"
+                    onClick={() => {
+                      const ymd = format(new Date(confirmTask.when!), 'yyyy-MM-dd');
+                      const set = new Set(confirmTask.task.excludeDates ?? []);
+                      set.add(ymd);
+                      updateTask(confirmTask.task.id, { excludeDates: Array.from(set) });
+                      setConfirmTask(null);
+                    }}
+                  >
+                    Delete this occurrence
+                  </button>
+                  <button
+                    className="px-3 py-2 rounded bg-red-600 hover:bg-red-500"
+                    onClick={() => {
+                      const ymd = format(new Date(confirmTask.when!), 'yyyy-MM-dd');
+                      const set = new Set(confirmTask.task.excludeDates ?? []);
+                      set.add(ymd);
+                      updateTask(confirmTask.task.id, { excludeDates: Array.from(set), repeatUntil: confirmTask.when });
+                      setConfirmTask(null);
+                    }}
+                  >
+                    Delete this and future occurrences
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="px-3 py-2 rounded bg-red-600 hover:bg-red-500"
+                  onClick={() => {
+                    removeTask(confirmTask.task.id);
+                    setConfirmTask(null);
+                  }}
+                >
+                  Delete
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -206,7 +237,7 @@ function DayView({
   anchor: Date;
   onUpdate: (id: string, patch: Partial<Task>) => void;
   onDelete: (id: string) => void;
-  setConfirmTask: (t: Task | null) => void;
+  setConfirmTask: (t: Task, when: number) => void;
 }) {
   const occ = expandOccurrences(tasks, startOfDay(anchor), endOfDay(anchor)).sort((a, b) => {
     const at = a.task.startAt ? a.when.getTime() : -1;
@@ -251,7 +282,7 @@ function DayView({
                   {formatDuration(task.durationMin) ? ` (${formatDuration(task.durationMin)})` : ''}
                 </div>
               </div>
-              <button className="text-xs underline opacity-80" onClick={() => setConfirmTask(task)}>
+              <button className="text-xs underline opacity-80" onClick={() => setConfirmTask(task, when.getTime())}>
                 delete
               </button>
             </div>
@@ -275,7 +306,7 @@ export function WeekView({
   anchor: Date;
   onUpdate: (id: string, patch: Partial<Task>) => void;
   onDelete: (id: string) => void;
-  setConfirmTask: (t: Task | null) => void;
+  setConfirmTask: (t: Task, when: number) => void;
 }) {
   const { start, end } = weekWindow(anchor);
   const occ = expandOccurrences(tasks, start, end);
@@ -336,7 +367,7 @@ export function WeekView({
                           </div>
                         )}
                       </div>
-                      <button className="text-[11px] underline opacity-80" onClick={() => setConfirmTask(task)}>
+                      <button className="text-[11px] underline opacity-80" onClick={() => setConfirmTask(task, when.getTime())}>
                         del
                       </button>
                     </div>

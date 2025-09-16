@@ -43,6 +43,8 @@ export function expandOccurrences(
   for (const t of tasks) {
     const base = t.startAt ? new Date(t.startAt) : undefined;
     const rep = t.repeat?.type ?? 'none';
+    const untilTs = t.repeatUntil ?? undefined;
+    const excluded = new Set(t.excludeDates ?? []);
 
     // NEW: cutoff so recurring tasks do not appear in the past
     // We only apply this to repeating tasks (daily/weekly/biweekly).
@@ -60,7 +62,8 @@ export function expandOccurrences(
         for (const d of eachDayOfInterval({ start: rangeStart, end: rangeEnd })) {
           if (getDay(d) === want) {
             const when = startOfDay(d);
-            if (isAllowed(when)) out.push({ task: t, when });
+            const ymd = format(when, 'yyyy-MM-dd');
+            if (isAllowed(when) && !excluded.has(ymd)) out.push({ task: t, when });
           }
         }
       }
@@ -69,8 +72,9 @@ export function expandOccurrences(
 
     if (rep === 'none') {
       if (isWithinInterval(base, { start: rangeStart, end: rangeEnd })) {
-        // one-time task: no cutoff needed
-        out.push({ task: t, when: base });
+        // one-time task: no cutoff needed, but still respect excludeDates (edge)
+        const ymd = format(base, 'yyyy-MM-dd');
+        if (!excluded.has(ymd)) out.push({ task: t, when: base });
       }
       continue;
     }
@@ -78,7 +82,9 @@ export function expandOccurrences(
     if (rep === 'daily') {
       for (const d of eachDayOfInterval({ start: rangeStart, end: rangeEnd })) {
         const when = setMinutes(setHours(d, base.getHours()), base.getMinutes());
-        if (isAllowed(when)) out.push({ task: t, when });
+        if (untilTs && when.getTime() > untilTs) break;
+        const ymd = format(when, 'yyyy-MM-dd');
+        if (isAllowed(when) && !excluded.has(ymd)) out.push({ task: t, when });
       }
       continue;
     }
@@ -88,7 +94,9 @@ export function expandOccurrences(
       for (const d of eachDayOfInterval({ start: rangeStart, end: rangeEnd })) {
         if (getDay(d) === weekday) {
           const when = setMinutes(setHours(d, base.getHours()), base.getMinutes());
-          if (isAllowed(when)) out.push({ task: t, when });
+          if (untilTs && when.getTime() > untilTs) break;
+          const ymd = format(when, 'yyyy-MM-dd');
+          if (isAllowed(when) && !excluded.has(ymd)) out.push({ task: t, when });
         }
       }
       continue;
@@ -102,7 +110,9 @@ export function expandOccurrences(
         const diffDays = Math.round((startOfDay(d).getTime() - baseDay.getTime()) / 86400000);
         if (diffDays >= 0 && diffDays % 14 === 0) {
           const when = setMinutes(setHours(d, base.getHours()), base.getMinutes());
-          if (isAllowed(when)) out.push({ task: t, when });
+          if (untilTs && when.getTime() > untilTs) break;
+          const ymd = format(when, 'yyyy-MM-dd');
+          if (isAllowed(when) && !excluded.has(ymd)) out.push({ task: t, when });
         }
       }
       continue;

@@ -18,6 +18,12 @@ export type Task = {
   durationMin?: number;   // duration in minutes
   repeat?: Repeat;
 
+  // Recurrence controls for deletion behavior
+  // Dates in 'yyyy-MM-dd' that should be skipped for repeating tasks
+  excludeDates?: string[];
+  // If set, do not generate occurrences after this timestamp (ms since epoch)
+  repeatUntil?: number;
+
   // LEGACY (kept only for migration): day/done/recurring
   day?: 'Mon'|'Tue'|'Wed'|'Thu'|'Fri'|'Sat'|'Sun';
   done?: boolean;         // <- legacy global flag
