@@ -17,6 +17,7 @@ export type TrackerData = {
 export function useTracker() {
   const [entries, setEntries] = useState<DailyEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadFromRepository();
@@ -77,17 +78,8 @@ export function useTracker() {
   }
 
   async function saveEntries(newEntries: DailyEntry[]) {
-    setEntries(newEntries);
-    const data: TrackerData = {
-      version: 2,
-      entries: newEntries,
-      updatedAt: Date.now()
-    };
+    setSaving(true);
     
-    // Save locally first
-    localStorage.setItem('tracker_data', JSON.stringify(data));
-    
-    // Try to save to repository
     try {
       const token = localStorage.getItem('gh_token');
       const owner = localStorage.getItem('gh_owner') || 'da-unstoppable';
@@ -95,23 +87,48 @@ export function useTracker() {
       const fileName = localStorage.getItem('gh_file') || 'challenge.json';
 
       if (token) {
-        // Get current file SHA by fetching the file first
-        console.log('Getting current SHA before saving...');
-        const shaResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${fileName}?t=${Date.now()}`, {
+        // Step 1: Fetch latest data from repository
+        console.log('Fetching latest data before saving...');
+        const fetchResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${fileName}?t=${Date.now()}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/vnd.github+json'
           }
         });
         
+        let remoteEntries: DailyEntry[] = [];
         let currentSha = null;
-        if (shaResponse.ok) {
-          const shaJson = await shaResponse.json();
-          currentSha = shaJson.sha;
-          console.log('Current SHA:', currentSha);
+        
+        if (fetchResponse.ok) {
+          const fetchJson = await fetchResponse.json();
+          if (fetchJson.content) {
+            const remoteData = JSON.parse(atob(fetchJson.content));
+            remoteEntries = remoteData.entries || [];
+            currentSha = fetchJson.sha;
+            console.log('Fetched remote data:', remoteEntries.length, 'entries, SHA:', currentSha);
+          }
+        } else {
+          console.log('Could not fetch remote data, proceeding with local data only');
         }
         
-        console.log('Saving to repository:', { owner, repo, fileName, hasSha: !!currentSha });
+        // Step 2: Merge local changes with remote data
+        const mergedEntries = mergeEntries(newEntries, remoteEntries);
+        console.log('Merged entries:', mergedEntries.length, 'total');
+        
+        // Step 3: Update local state with merged data
+        setEntries(mergedEntries);
+        
+        // Step 4: Save merged data to repository
+        const data: TrackerData = {
+          version: 2,
+          entries: mergedEntries,
+          updatedAt: Date.now()
+        };
+        
+        // Save locally first
+        localStorage.setItem('tracker_data', JSON.stringify(data));
+        
+        console.log('Saving merged data to repository...');
         
         const body = {
           message: `Update ${fileName} - ${new Date().toISOString()}`,
@@ -139,23 +156,21 @@ export function useTracker() {
           if (json.commit?.sha) {
             localStorage.setItem('planner_commit', json.commit.sha);
           }
-        } else if (response.status === 409) {
-          // SHA conflict - merge changes and retry
-          console.log('SHA conflict detected, merging changes...');
-          await loadFromRepository();
-          // Merge local changes with latest remote data
-          const mergedEntries = mergeEntries(newEntries, entries);
-          // Retry with merged data
-          setTimeout(() => saveEntries(mergedEntries), 1000);
+          setSaving(false);
         } else {
           const errorText = await response.text();
           console.error('Failed to save to repository:', response.status, errorText);
+          setSaving(false);
         }
       } else {
         console.log('No GitHub token found, saving locally only');
+        setSaving(false);
       }
     } catch (e) {
       console.error('Repository save failed:', e);
+      setSaving(false);
+      // Show user-friendly error message
+      alert('Failed to save to repository. Check console for details.');
     }
   }
 
@@ -210,6 +225,7 @@ export function useTracker() {
   return {
     entries,
     loading,
+    saving,
     updateEntry,
     getEntry,
     refresh: loadFromRepository

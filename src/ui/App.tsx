@@ -3,7 +3,7 @@ import { addDays, format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, each
 import { useTracker } from '../usePlanner';
 
 export default function App() {
-  const { entries, loading, updateEntry, getEntry, refresh } = useTracker();
+  const { entries, loading, saving, updateEntry, getEntry, refresh } = useTracker();
   const [view, setView] = useState<'week' | 'month'>(() => {
     const v = localStorage.getItem('calendar_view');
     return v === 'month' ? 'month' : 'week';
@@ -18,7 +18,10 @@ export default function App() {
   return (
     <div className="app-shell mx-auto w-full max-w-[1280px] px-3 sm:px-4 lg:px-5 pt-6 pb-6 bg-amber-25 min-h-screen">
       <header className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-2xl font-bold text-amber-900">Daily Tracker</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-amber-900">Daily Tracker</h1>
+          {saving && <span className="text-sm text-amber-600">Saving...</span>}
+        </div>
         <div className="flex gap-2">
           <button
             onClick={() => refresh()}
