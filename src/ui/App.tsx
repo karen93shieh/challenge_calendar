@@ -25,6 +25,7 @@ export default function App() {
   const [editDate, setEditDate] = useState<string>('');
   const [editTime, setEditTime] = useState<string>('00:00');
   const [editAllDay, setEditAllDay] = useState<boolean>(false);
+  const [showSettings, setShowSettings] = useState<boolean>(false);
 
   useEffect(() => {
     localStorage.setItem('planner_view', view);
@@ -49,6 +50,12 @@ export default function App() {
     <div className="app-shell mx-auto w-full max-w-[1280px] px-3 sm:px-4 lg:px-5 pt-6 pb-6">
       <header className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl font-bold">Weekly Planner</h1>
+        <button
+          onClick={() => setShowSettings(true)}
+          className="px-3 py-2 rounded bg-zinc-700 hover:bg-zinc-600 text-sm"
+        >
+          Settings
+        </button>
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2">
@@ -326,9 +333,9 @@ function AddForm({
         if (dateEl) dateEl.value = todayStr;
         if (timeEl) timeEl.value = '00:00';
       }}
-      className="grid md:grid-cols-6 gap-2 mb-5"
+      className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-5"
     >
-      <input name="title" placeholder="Add an activity…" className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2 md:col-span-2" />
+      <input name="title" placeholder="Add an activity…" className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2 col-span-2 md:col-span-2" />
       <input name="date" type="date" defaultValue={todayStr} className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2" />
       <input name="time" type="time" defaultValue="00:00" className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2" />
       <input name="duration" placeholder="Duration (min or HH:MM)" className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2" />
