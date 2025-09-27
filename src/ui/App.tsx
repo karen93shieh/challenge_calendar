@@ -44,15 +44,15 @@ export default function App() {
     setEditAllDay(!detailTask.durationMin || detailTask.durationMin <= 0);
   }
 
-  if (loading) return <div className="p-6">Loading…</div>;
+  if (loading) return <div className="p-6 text-amber-800">Loading…</div>;
 
   return (
-    <div className="app-shell mx-auto w-full max-w-[1280px] px-3 sm:px-4 lg:px-5 pt-6 pb-6">
+    <div className="app-shell mx-auto w-full max-w-[1280px] px-3 sm:px-4 lg:px-5 pt-6 pb-6 bg-amber-25 min-h-screen">
       <header className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-2xl font-bold">Weekly Planner</h1>
+        <h1 className="text-2xl font-bold text-amber-900">Weekly Planner</h1>
         <button
           onClick={() => setShowSettings(true)}
-          className="px-3 py-2 rounded bg-zinc-700 hover:bg-zinc-600 text-sm"
+          className="px-3 py-2 rounded bg-amber-200 hover:bg-amber-300 text-amber-900 text-sm"
         >
           Settings
         </button>
@@ -60,13 +60,13 @@ export default function App() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2">
             <button
-              className={`px-3 py-1 rounded ${view === 'day' ? 'bg-zinc-800' : ''}`}
+              className={`px-3 py-1 rounded ${view === 'day' ? 'bg-amber-200 text-amber-900' : 'text-amber-700'}`}
               onClick={() => setView('day')}
             >
               Day
             </button>
             <button
-              className={`px-3 py-1 rounded ${view === 'week' ? 'bg-zinc-800' : ''}`}
+              className={`px-3 py-1 rounded ${view === 'week' ? 'bg-amber-200 text-amber-900' : 'text-amber-700'}`}
               onClick={() => setView('week')}
             >
               Week
@@ -75,13 +75,13 @@ export default function App() {
 
           <div className="ms-3 flex items-center gap-2">
             <button
-              className="px-2 py-1 rounded border border-zinc-700"
+              className="px-2 py-1 rounded border border-amber-300 text-amber-700 hover:bg-amber-100"
               onClick={() => setAnchor(addDays(anchor, view === 'day' ? -1 : -7))}
               aria-label="Previous"
             >
               ‹
             </button>
-            <div className="text-sm opacity-80">
+            <div className="text-sm opacity-80 text-amber-700">
               {view === 'day'
                 ? format(anchor, 'EEE, MMM d')
                 : `${format(weekWindow(anchor).start, 'MMM d')} – ${format(
@@ -90,7 +90,7 @@ export default function App() {
                   )}`}
             </div>
             <button
-              className="px-2 py-1 rounded border border-zinc-700"
+              className="px-2 py-1 rounded border border-amber-300 text-amber-700 hover:bg-amber-100"
               onClick={() => setAnchor(addDays(anchor, view === 'day' ? 1 : 7))}
               aria-label="Next"
             >
@@ -100,7 +100,7 @@ export default function App() {
         </div>
       </header>
 
-      {error && <div className="text-red-400 mb-3">{error}</div>}
+      {error && <div className="text-red-600 mb-3 bg-red-100 border border-red-300 rounded p-2">{error}</div>}
 
       <AddForm onAdd={addTask} />
 
@@ -135,17 +135,17 @@ export default function App() {
       )}
 
       {confirmTask && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/70 z-50">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 max-w-sm w-full">
-            <h2 className="text-lg font-semibold mb-2">Delete Task</h2>
-            <p className="mb-4">
+        <div className="fixed inset-0 flex items-center justify-center bg-amber-900/70 z-50">
+          <div className="bg-amber-50 border border-amber-300 rounded-lg p-6 max-w-sm w-full">
+            <h2 className="text-lg font-semibold mb-2 text-amber-900">Delete Task</h2>
+            <p className="mb-4 text-amber-800">
               {confirmTask.task.repeat?.type && confirmTask.task.repeat.type !== 'none'
                 ? 'This is a repeating task. Delete only this occurrence or all future ones?'
                 : <>Are you sure you want to delete <span className="font-medium">"{confirmTask.task.title}"</span>?</>}
             </p>
             <div className="flex flex-wrap justify-end gap-2">
               <button
-                className="px-3 py-2 rounded bg-zinc-700 hover:bg-zinc-600"
+                className="px-3 py-2 rounded bg-amber-200 hover:bg-amber-300 text-amber-900"
                 onClick={() => setConfirmTask(null)}
               >
                 Cancel
@@ -194,29 +194,29 @@ export default function App() {
       )}
 
       {detailTask && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/70 z-50">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-lg font-semibold mb-3">Edit Task</h2>
+        <div className="fixed inset-0 flex items-center justify-center bg-amber-900/70 z-50">
+          <div className="bg-amber-50 border border-amber-300 rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-lg font-semibold mb-3 text-amber-900">Edit Task</h2>
             <div className="space-y-3">
               <div>
-                <div className="text-xs opacity-70 mb-1">Title</div>
-                <div className="text-sm">{detailTask.title}</div>
+                <div className="text-xs opacity-70 mb-1 text-amber-700">Title</div>
+                <div className="text-sm text-amber-900">{detailTask.title}</div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
-                  <div className="text-xs opacity-70 mb-1">Date</div>
+                  <div className="text-xs opacity-70 mb-1 text-amber-700">Date</div>
                   <input
                     type="date"
-                    className="w-full border border-zinc-800 bg-zinc-900 rounded px-2 py-1"
+                    className="w-full border border-amber-300 bg-amber-50 rounded px-2 py-1 text-amber-900"
                     value={editDate}
                     onChange={(e) => setEditDate(e.target.value)}
                   />
                 </label>
                 <label className="block">
-                  <div className="text-xs opacity-70 mb-1">Time</div>
+                  <div className="text-xs opacity-70 mb-1 text-amber-700">Time</div>
                   <input
                     type="time"
-                    className="w-full border border-zinc-800 bg-zinc-900 rounded px-2 py-1"
+                    className="w-full border border-amber-300 bg-amber-50 rounded px-2 py-1 text-amber-900"
                     value={editTime}
                     onChange={(e) => setEditTime(e.target.value)}
                     disabled={editAllDay}
@@ -229,13 +229,13 @@ export default function App() {
                   checked={editAllDay}
                   onChange={(e) => setEditAllDay(e.target.checked)}
                 />
-                <span className="text-sm">All-day</span>
+                <span className="text-sm text-amber-900">All-day</span>
               </label>
             </div>
 
             <div className="flex justify-end gap-2 mt-5">
               <button
-                className="px-3 py-2 rounded bg-zinc-700 hover:bg-zinc-600"
+                className="px-3 py-2 rounded bg-amber-200 hover:bg-amber-300 text-amber-900"
                 onClick={() => {
                   setDetailTask(null);
                   setEditDate('');
@@ -271,6 +271,74 @@ export default function App() {
                 }}
               >
                 Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSettings && (
+        <div className="fixed inset-0 flex items-center justify-center bg-amber-900/70 z-50">
+          <div className="bg-amber-50 border border-amber-300 rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-lg font-semibold mb-3 text-amber-900">Repository Settings</h2>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-amber-700 mb-1">GitHub Token</label>
+                <input
+                  type="password"
+                  className="w-full border border-amber-300 bg-amber-50 rounded px-3 py-2 text-amber-900"
+                  placeholder="ghp_..."
+                  defaultValue={localStorage.getItem('gh_token') || ''}
+                  onChange={(e) => localStorage.setItem('gh_token', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-amber-700 mb-1">Repository Owner</label>
+                <input
+                  type="text"
+                  className="w-full border border-amber-300 bg-amber-50 rounded px-3 py-2 text-amber-900"
+                  placeholder="username"
+                  defaultValue={localStorage.getItem('gh_owner') || 'da-unstoppable'}
+                  onChange={(e) => localStorage.setItem('gh_owner', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-amber-700 mb-1">Repository Name</label>
+                <input
+                  type="text"
+                  className="w-full border border-amber-300 bg-amber-50 rounded px-3 py-2 text-amber-900"
+                  placeholder="repo-name"
+                  defaultValue={localStorage.getItem('gh_repo') || 'gist-challenge'}
+                  onChange={(e) => localStorage.setItem('gh_repo', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-amber-700 mb-1">File Name</label>
+                <input
+                  type="text"
+                  className="w-full border border-amber-300 bg-amber-50 rounded px-3 py-2 text-amber-900"
+                  placeholder="challenge.json"
+                  defaultValue={localStorage.getItem('gh_file') || 'challenge.json'}
+                  onChange={(e) => localStorage.setItem('gh_file', e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                className="px-3 py-2 rounded bg-amber-200 hover:bg-amber-300 text-amber-900"
+                onClick={() => setShowSettings(false)}
+              >
+                Close
+              </button>
+              <button
+                className="px-3 py-2 rounded bg-amber-600 hover:bg-amber-700 text-amber-50"
+                onClick={() => {
+                  setShowSettings(false);
+                  window.location.reload(); // Reload to use new settings
+                }}
+              >
+                Save & Reload
               </button>
             </div>
           </div>
@@ -335,17 +403,17 @@ function AddForm({
       }}
       className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-5"
     >
-      <input name="title" placeholder="Add an activity…" className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2 col-span-2 md:col-span-2" />
-      <input name="date" type="date" defaultValue={todayStr} className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2" />
-      <input name="time" type="time" defaultValue="00:00" className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2" />
-      <input name="duration" placeholder="Duration (min or HH:MM)" className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2" />
-      <select name="repeat" className="border border-zinc-800 bg-zinc-900 rounded px-3 py-2">
+      <input name="title" placeholder="Add an activity…" className="border border-amber-300 bg-amber-50 rounded px-3 py-2 col-span-2 md:col-span-2 text-amber-900" />
+      <input name="date" type="date" defaultValue={todayStr} className="border border-amber-300 bg-amber-50 rounded px-3 py-2 text-amber-900" />
+      <input name="time" type="time" defaultValue="00:00" className="border border-amber-300 bg-amber-50 rounded px-3 py-2 text-amber-900" />
+      <input name="duration" placeholder="Duration (min or HH:MM)" className="border border-amber-300 bg-amber-50 rounded px-3 py-2 text-amber-900" />
+      <select name="repeat" className="border border-amber-300 bg-amber-50 rounded px-3 py-2 text-amber-900">
         <option value="none">One-time</option>
         <option value="daily">Day</option>
         <option value="weekly">Weekly</option>
         <option value="biweekly">Biweekly</option>
       </select>
-      <button className="rounded bg-zinc-800 px-3 py-2">Add</button>
+      <button className="rounded bg-amber-600 hover:bg-amber-700 text-amber-50 px-3 py-2">Add</button>
     </form>
   );
 }
@@ -376,7 +444,7 @@ function DayView({
 
   return (
     <section className="space-y-2">
-      {occ.length === 0 && <div className="opacity-70 text-sm">No activities today.</div>}
+      {occ.length === 0 && <div className="opacity-70 text-sm text-amber-700">No activities today.</div>}
       {occ.map(({ task, when }) => {
         const noDuration = !task.durationMin || task.durationMin <= 0;
         const timeLabel = noDuration ? 'All day' : format(when, 'MM/dd/yyyy HH:mm');
@@ -388,7 +456,7 @@ function DayView({
         return (
           <article
             key={task.id + when.getTime()}
-            className={`border rounded p-3 ${isRepeating ? 'border-white/20 bg-white/5' : 'border-zinc-800'}`}
+            className={`border rounded p-3 ${isRepeating ? 'border-amber-300 bg-amber-100' : 'border-amber-300 bg-amber-50'}`}
           >
             <div className="flex items-center gap-3">
               <input
@@ -406,15 +474,15 @@ function DayView({
                 }}
               />
               <div className="flex-1 cursor-pointer" onClick={() => { if (!isRepeating) onOpenDetails(task); }}>
-                <div className={`font-medium ${checked ? 'line-through opacity-50' : ''}`}>
+                <div className={`font-medium text-amber-900 ${checked ? 'line-through opacity-50' : ''}`}>
                   {task.title}
                 </div>
-                <div className="text-xs opacity-70">
+                <div className="text-xs opacity-70 text-amber-700">
                   {timeLabel}
                   {formatDuration(task.durationMin) ? ` (${formatDuration(task.durationMin)})` : ''}
                 </div>
               </div>
-              <button className="text-xs underline opacity-80" onClick={() => setConfirmTask(task, when.getTime())}>
+              <button className="text-xs underline opacity-80 text-amber-700 hover:text-amber-900" onClick={() => setConfirmTask(task, when.getTime())}>
                 delete
               </button>
             </div>
@@ -458,8 +526,8 @@ export function WeekView({
           });
 
         return (
-          <div key={d.toDateString()} className="border border-zinc-800 rounded p-2">
-            <div className="text-sm font-semibold mb-2">{format(d, 'EEE d')}</div>
+          <div key={d.toDateString()} className="border border-amber-300 rounded p-2 bg-amber-50">
+            <div className="text-sm font-semibold mb-2 text-amber-900">{format(d, 'EEE d')}</div>
             <div className="space-y-2">
               {dayItems.map(({ task, when }) => {
                 const noDuration = !task.durationMin || task.durationMin <= 0;
@@ -472,9 +540,9 @@ export function WeekView({
                 return (
                   <div
                     key={task.id + when.getTime()}
-                    className={`border rounded p-2 ${isRepeating ? 'border-white/20 bg-white/5' : 'border-zinc-800'}`}
+                    className={`border rounded p-2 ${isRepeating ? 'border-amber-300 bg-amber-100' : 'border-amber-300 bg-amber-50'}`}
                   >
-                    <div className="text-xs opacity-70">
+                    <div className="text-xs opacity-70 text-amber-700">
                       {timeLabel}
                       {formatDuration(task.durationMin) ? ` (${formatDuration(task.durationMin)})` : ''}
                     </div>
@@ -495,23 +563,23 @@ export function WeekView({
                         }}
                       />
                       <div className="flex-1 leading-5 cursor-pointer" onClick={() => { if (!isRepeating) onOpenDetails(task); }}>
-                        <div className={`text-sm ${checked ? 'line-through opacity-50' : ''}`}>
+                        <div className={`text-sm text-amber-900 ${checked ? 'line-through opacity-50' : ''}`}>
                           {task.title}
                         </div>
                         {task.notes && (
-                          <div className={`text-xs mt-0.5 ${checked ? 'line-through opacity-50' : 'opacity-70'}`}>
+                          <div className={`text-xs mt-0.5 text-amber-700 ${checked ? 'line-through opacity-50' : 'opacity-70'}`}>
                             {task.notes}
                           </div>
                         )}
                       </div>
-                      <button className="text-[11px] underline opacity-80" onClick={() => setConfirmTask(task, when.getTime())}>
+                      <button className="text-[11px] underline opacity-80 text-amber-700 hover:text-amber-900" onClick={() => setConfirmTask(task, when.getTime())}>
                         del
                       </button>
                     </div>
                   </div>
                 );
               })}
-              {dayItems.length === 0 && <div className="text-xs opacity-50">—</div>}
+              {dayItems.length === 0 && <div className="text-xs opacity-50 text-amber-600">—</div>}
             </div>
           </div>
         );

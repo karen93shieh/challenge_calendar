@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { loadPlanner, savePlanner, Task, PlannerDoc, GistConfig } from './gistSync';
+import { loadPlanner, savePlanner, Task, PlannerDoc, RepoConfig } from './gistSync';
 import { setCompletedAt } from './lib/schedule'; // path matches where you put schedule.ts
 
-const cfg: GistConfig = {
+const cfg: RepoConfig = {
   token: localStorage.getItem('gh_token') || '',
-  gistId: localStorage.getItem('gh_gist') || '',
-  fileName: 'planner.json'
+  owner: localStorage.getItem('gh_owner') || 'da-unstoppable',
+  repo: localStorage.getItem('gh_repo') || 'gist-challenge',
+  fileName: localStorage.getItem('gh_file') || 'challenge.json'
 };
 
 function nowMs() { return Date.now(); }

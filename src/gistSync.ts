@@ -43,9 +43,10 @@ export type PlannerDoc = {
   updatedAt: number;
 };
 
-export type GistConfig = {
+export type RepoConfig = {
   token: string;
-  gistId: string;
+  owner: string;
+  repo: string;
   fileName: string;
 };
 
@@ -75,13 +76,13 @@ function migrateDoc(doc: any): PlannerDoc {
   return { version: 2, tasks: migrated, updatedAt: Date.now() };
 }
 
-export async function loadPlanner(cfg: GistConfig, cachedEtag?: string): Promise<{
+export async function loadPlanner(cfg: RepoConfig, cachedEtag?: string): Promise<{
   doc: PlannerDoc,
   etag: string,
   commit?: string,
   notModified?: boolean
 }> {
-  const res = await fetch(`${GH_API}/gists/${cfg.gistId}`, {
+  const res = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/contents/${cfg.fileName}`, {
     headers: headers(cfg.token, cachedEtag ? { "If-None-Match": cachedEtag } : {})
   });
 
@@ -93,21 +94,20 @@ export async function loadPlanner(cfg: GistConfig, cachedEtag?: string): Promise
       notModified: true
     };
   }
-  if (!res.ok) throw new Error(`Gist load failed: ${res.status}`);
+  if (!res.ok) throw new Error(`Repository load failed: ${res.status}`);
 
   const etag = res.headers.get("ETag") || "";
   const json = await res.json();
-  const file = json.files?.[cfg.fileName] || json.files?.['planner.json'] || json.files?.['PLANNER.JSON'] || json.files?.['Planner.json'];
-  if (!file || !file.content) throw new Error(`File ${cfg.fileName} not found in gist`);
-  const rawDoc = JSON.parse(file.content);
+  if (!json.content) throw new Error(`File ${cfg.fileName} not found in repository`);
+  const rawDoc = JSON.parse(atob(json.content));
 
   const doc = migrateDoc(rawDoc);
 
   localStorage.setItem("planner_cache", JSON.stringify(doc));
   if (etag) localStorage.setItem("planner_etag", etag);
-  if (json.history?.[0]?.version) localStorage.setItem("planner_commit", json.history[0].version);
+  if (json.sha) localStorage.setItem("planner_commit", json.sha);
 
-  return { doc, etag, commit: json.history?.[0]?.version };
+  return { doc, etag, commit: json.sha };
 }
 
 /** Merge that preserves local IDs, prefers newer updatedAt for conflicts */
@@ -129,7 +129,7 @@ export function mergeTasks(local: Task[], remote: Task[]): Task[] {
   return out.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
 }
 
-export async function savePlanner(cfg: GistConfig, next: PlannerDoc): Promise<{commit: string}> {
+export async function savePlanner(cfg: RepoConfig, next: PlannerDoc): Promise<{commit: string}> {
   const cachedEtag = localStorage.getItem("planner_etag") || undefined;
   let base: PlannerDoc | undefined;
   try {
@@ -146,23 +146,24 @@ export async function savePlanner(cfg: GistConfig, next: PlannerDoc): Promise<{c
     updatedAt: Date.now()
   };
 
+  // Get current file SHA for update
+  const currentSha = localStorage.getItem("planner_commit");
+  
   const body = {
-    files: {
-      [cfg.fileName]: {
-        content: JSON.stringify(merged, null, 2)
-      }
-    }
+    message: `Update ${cfg.fileName} - ${new Date().toISOString()}`,
+    content: btoa(JSON.stringify(merged, null, 2)),
+    sha: currentSha || undefined
   };
 
-  const res = await fetch(`${GH_API}/gists/${cfg.gistId}`, {
-    method: "PATCH",
+  const res = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/contents/${cfg.fileName}`, {
+    method: "PUT",
     headers: headers(cfg.token, { "Content-Type": "application/json" }),
     body: JSON.stringify(body)
   });
-  if (!res.ok) throw new Error(`Gist save failed: ${res.status} ${await res.text()}`);
+  if (!res.ok) throw new Error(`Repository save failed: ${res.status} ${await res.text()}`);
 
   const js = await res.json();
-  const commit = js.history?.[0]?.version || "";
+  const commit = js.commit?.sha || "";
   localStorage.setItem("planner_cache", JSON.stringify(merged));
   if (commit) localStorage.setItem("planner_commit", commit);
   const etag = res.headers.get("ETag");

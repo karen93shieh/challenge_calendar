@@ -1,8 +1,8 @@
 
-# Weekly Planner — Gist Sync PWA
+# Challenge Calendar — Repository Sync PWA
 
 A minimal, installable PWA (Vite + React + TS + Tailwind + vite-plugin-pwa) that syncs
-your weekly tasks to a single **private GitHub Gist** JSON file.
+your weekly tasks to a **GitHub Repository** JSON file.
 
 ## Quick start
 ```bash
@@ -10,20 +10,28 @@ npm install
 npm run dev
 ```
 
-Then open the app → **Settings** → paste your GitHub token (gist scope) and your Gist ID.
+Then open the app → **Settings** → paste your GitHub token and repository details.
 
-### Create your Gist
-- Go to GitHub → Gists → New secret gist
-- File name: `planner.json`
-- Content:
+### Create your Repository
+- Go to GitHub → Create a new repository
+- Add a JSON file (e.g., `challenge.json`) with initial content:
 ```json
-{ "version": 1, "tasks": [], "updatedAt": 0 }
+{
+  "version": 2,
+  "tasks": [],
+  "updatedAt": 0
+}
 ```
-- Copy the Gist ID from the URL
+- Commit and push the file
 
 ### Token
-- Create a Personal Access Token with only the **gist** scope (fine-grained or classic)
+- Create a Personal Access Token with **repo** scope (full repository access)
 - Paste it in Settings (stored locally in your browser via localStorage)
+
+### Repository Settings
+- **Owner**: Your GitHub username or organization name
+- **Repository**: The repository name
+- **File Name**: The JSON file name (e.g., `challenge.json`)
 
 ## Build PWA
 ```bash
@@ -37,10 +45,17 @@ The app works offline; it updates itself when you revisit (service worker autoUp
 ## Data & Conflicts
 - Local cache is stored in `localStorage` as `planner_cache`
 - Sync uses ETag and merges by `task.id`, choosing the higher `updatedAt`
-- Gist keeps a history of revisions if you need to roll back
+- Repository keeps a full git history if you need to roll back
+
+## Sharing & Collaboration
+- **Private Repository**: Only repository collaborators can access
+- **Organization Repository**: Members of the organization can access
+- **Public Repository**: Anyone can access (be careful with sensitive data)
+- Each user needs their own GitHub token with appropriate permissions
 
 ## Notes
-- This app is single-user by design. Keep your gist **secret**.
+- This app supports multi-user collaboration through GitHub repository access
+- Repository must have the JSON file with proper structure
 - If you later want real local notifications, wrap the PWA with Capacitor.
 
 
