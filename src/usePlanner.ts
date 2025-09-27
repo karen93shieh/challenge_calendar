@@ -1,84 +1,217 @@
-import { useEffect, useState } from 'react';
-import { loadPlanner, savePlanner, Task, PlannerDoc, RepoConfig } from './gistSync';
-import { setCompletedAt } from './lib/schedule'; // path matches where you put schedule.ts
+import { useState, useEffect } from 'react';
 
-const cfg: RepoConfig = {
-  token: localStorage.getItem('gh_token') || '',
-  owner: localStorage.getItem('gh_owner') || 'da-unstoppable',
-  repo: localStorage.getItem('gh_repo') || 'gist-challenge',
-  fileName: localStorage.getItem('gh_file') || 'challenge.json'
+// Simple daily tracking data structure
+export type DailyEntry = {
+  date: string; // YYYY-MM-DD format
+  notes?: string;
+  completed: boolean;
+  updatedAt: number;
 };
 
-function nowMs() { return Date.now(); }
+export type TrackerData = {
+  version: 2;
+  entries: DailyEntry[];
+  updatedAt: number;
+};
 
-export function usePlanner() {
-  const [tasks, setTasks] = useState<Task[]>([]);
+export function useTracker() {
+  const [entries, setEntries] = useState<DailyEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Load
   useEffect(() => {
-    (async () => {
-      try {
-        const etag = localStorage.getItem('planner_etag') || undefined;
-        const { doc } = await loadPlanner(cfg, etag);
-        // Ensure completion map exists
-        setTasks((doc.tasks || []).map(t => ({ ...t, completion: t.completion ?? {} })));
-      } catch (e:any) {
-        const cached = localStorage.getItem('planner_cache');
-        if (cached) {
-          const doc = JSON.parse(cached) as PlannerDoc;
-          setTasks((doc.tasks || []).map(t => ({ ...t, completion: t.completion ?? {} })));
-        } else {
-          setTasks([]);
-        }
-        setError(e.message || 'Load error');
-      } finally {
-        setLoading(false);
-      }
-    })();
+    loadFromRepository();
   }, []);
 
-  async function persist(nextTasks: Task[]) {
-    setTasks(nextTasks);
+  async function loadFromRepository() {
     try {
-      await savePlanner(cfg, { version: 2, tasks: nextTasks, updatedAt: nowMs() });
+      // Check if we have repository configuration
+      const token = localStorage.getItem('gh_token');
+      const owner = localStorage.getItem('gh_owner') || 'da-unstoppable';
+      const repo = localStorage.getItem('gh_repo') || 'gist-challenge';
+      const fileName = localStorage.getItem('gh_file') || 'challenge.json';
+
+      if (token) {
+        // Load from repository
+        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${fileName}?t=${Date.now()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json'
+          }
+        });
+
+        if (response.ok) {
+          const json = await response.json();
+          if (json.content) {
+            const content = JSON.parse(atob(json.content));
+            setEntries(content.entries || []);
+            // Also cache locally
+            localStorage.setItem('tracker_data', JSON.stringify(content));
+            // Store the file SHA for future updates
+            if (json.sha) {
+              localStorage.setItem('planner_commit', json.sha);
+              console.log('Updated SHA from load:', json.sha);
+            }
+            setLoading(false);
+            return;
+          }
+        } else {
+          console.warn('Failed to load from repository:', response.status, await response.text());
+        }
+      }
     } catch (e) {
-      console.warn('Save deferred', e);
+      console.warn('Repository load failed:', e);
+    }
+
+    // Fallback to localStorage
+    const cached = localStorage.getItem('tracker_data');
+    if (cached) {
+      try {
+        const data = JSON.parse(cached) as TrackerData;
+        setEntries(data.entries || []);
+      } catch (e) {
+        console.warn('Failed to parse cached data:', e);
+        setEntries([]);
+      }
+    }
+    setLoading(false);
+  }
+
+  async function saveEntries(newEntries: DailyEntry[]) {
+    setEntries(newEntries);
+    const data: TrackerData = {
+      version: 2,
+      entries: newEntries,
+      updatedAt: Date.now()
+    };
+    
+    // Save locally first
+    localStorage.setItem('tracker_data', JSON.stringify(data));
+    
+    // Try to save to repository
+    try {
+      const token = localStorage.getItem('gh_token');
+      const owner = localStorage.getItem('gh_owner') || 'da-unstoppable';
+      const repo = localStorage.getItem('gh_repo') || 'gist-challenge';
+      const fileName = localStorage.getItem('gh_file') || 'challenge.json';
+
+      if (token) {
+        // Get current file SHA by fetching the file first
+        console.log('Getting current SHA before saving...');
+        const shaResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${fileName}?t=${Date.now()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json'
+          }
+        });
+        
+        let currentSha = null;
+        if (shaResponse.ok) {
+          const shaJson = await shaResponse.json();
+          currentSha = shaJson.sha;
+          console.log('Current SHA:', currentSha);
+        }
+        
+        console.log('Saving to repository:', { owner, repo, fileName, hasSha: !!currentSha });
+        
+        const body = {
+          message: `Update ${fileName} - ${new Date().toISOString()}`,
+          content: btoa(JSON.stringify(data, null, 2))
+        };
+        
+        // Only include SHA if we have one (for updates)
+        if (currentSha) {
+          (body as any).sha = currentSha;
+        }
+        
+        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${fileName}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+
+        if (response.ok) {
+          const json = await response.json();
+          console.log('Successfully saved to repository:', json);
+          if (json.commit?.sha) {
+            localStorage.setItem('planner_commit', json.commit.sha);
+          }
+        } else if (response.status === 409) {
+          // SHA conflict - merge changes and retry
+          console.log('SHA conflict detected, merging changes...');
+          await loadFromRepository();
+          // Merge local changes with latest remote data
+          const mergedEntries = mergeEntries(newEntries, entries);
+          // Retry with merged data
+          setTimeout(() => saveEntries(mergedEntries), 1000);
+        } else {
+          const errorText = await response.text();
+          console.error('Failed to save to repository:', response.status, errorText);
+        }
+      } else {
+        console.log('No GitHub token found, saving locally only');
+      }
+    } catch (e) {
+      console.error('Repository save failed:', e);
     }
   }
 
-  async function addTask(partial: Omit<Task,'id'|'createdAt'|'updatedAt'|'completion'|'done'>) {
-    const now = nowMs();
-    const t: Task = {
-      id: crypto.randomUUID(),
-      createdAt: now,
-      updatedAt: now,
-      completion: {},
-      ...partial,
-    };
-    await persist([ ...tasks, t ]);
+  async function updateEntry(date: string, updates: Partial<DailyEntry>) {
+    const existingIndex = entries.findIndex(e => e.date === date);
+    const now = Date.now();
+    
+    if (existingIndex >= 0) {
+      // Update existing entry
+      const updated = entries.map((entry, index) => 
+        index === existingIndex 
+          ? { ...entry, ...updates, updatedAt: now }
+          : entry
+      );
+      await saveEntries(updated);
+    } else {
+      // Create new entry
+      const newEntry: DailyEntry = {
+        date,
+        completed: false,
+        updatedAt: now,
+        ...updates
+      };
+      await saveEntries([...entries, newEntry]);
+    }
   }
 
-  async function updateTask(id: string, patch: Partial<Task>) {
-    const now = nowMs();
-    const next = tasks.map(t => t.id === id ? { ...t, ...patch, updatedAt: now } : t);
-    await persist(next);
+  function getEntry(date: string): DailyEntry | undefined {
+    return entries.find(e => e.date === date);
   }
 
-  async function removeTask(id: string) {
-    await persist(tasks.filter(t => t.id !== id));
+  // Merge local changes with remote data, preferring newer updates
+  function mergeEntries(localEntries: DailyEntry[], remoteEntries: DailyEntry[]): DailyEntry[] {
+    const merged = new Map<string, DailyEntry>();
+    
+    // Add remote entries first
+    for (const entry of remoteEntries) {
+      merged.set(entry.date, entry);
+    }
+    
+    // Override with local entries if they're newer
+    for (const localEntry of localEntries) {
+      const remoteEntry = merged.get(localEntry.date);
+      if (!remoteEntry || localEntry.updatedAt > remoteEntry.updatedAt) {
+        merged.set(localEntry.date, localEntry);
+      }
+    }
+    
+    return Array.from(merged.values());
   }
 
-  // NEW: toggle/set completion for a SPECIFIC occurrence
-  async function setDoneForOccurrence(id: string, when: Date, done: boolean) {
-    const now = nowMs();
-    const next = tasks.map(t => {
-      if (t.id !== id) return t;
-      return { ...setCompletedAt(t, when, done), updatedAt: now };
-    });
-    await persist(next);
-  }
-
-  return { tasks, addTask, updateTask, removeTask, loading, error, setDoneForOccurrence };
+  return {
+    entries,
+    loading,
+    updateEntry,
+    getEntry,
+    refresh: loadFromRepository
+  };
 }

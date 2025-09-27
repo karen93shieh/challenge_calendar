@@ -1,8 +1,13 @@
 
-# Challenge Calendar — Repository Sync PWA
+# Daily Tracker — Calendar PWA
 
-A minimal, installable PWA (Vite + React + TS + Tailwind + vite-plugin-pwa) that syncs
-your weekly tasks to a **GitHub Repository** JSON file.
+A minimal, installable PWA (Vite + React + TS + Tailwind + vite-plugin-pwa) for daily tracking with weekly and monthly calendar views.
+
+## Features
+- **Weekly View**: Track daily progress with checkboxes and notes
+- **Monthly View**: Overview calendar with completion checkboxes
+- **Local Storage**: Data stored locally in your browser
+- **Repository Sync**: Optional GitHub repository integration for sharing
 
 ## Quick start
 ```bash
@@ -10,28 +15,12 @@ npm install
 npm run dev
 ```
 
-Then open the app → **Settings** → paste your GitHub token and repository details.
-
-### Create your Repository
-- Go to GitHub → Create a new repository
-- Add a JSON file (e.g., `challenge.json`) with initial content:
-```json
-{
-  "version": 2,
-  "tasks": [],
-  "updatedAt": 0
-}
-```
-- Commit and push the file
-
-### Token
-- Create a Personal Access Token with **repo** scope (full repository access)
-- Paste it in Settings (stored locally in your browser via localStorage)
-
-### Repository Settings
-- **Owner**: Your GitHub username or organization name
-- **Repository**: The repository name
-- **File Name**: The JSON file name (e.g., `challenge.json`)
+## Usage
+1. **Switch Views**: Toggle between Week and Month views
+2. **Track Progress**: Check off completed days
+3. **Add Notes**: In weekly view, add notes for each day
+4. **Navigate**: Use arrow buttons to move between weeks/months
+5. **Settings**: Configure GitHub repository sync (optional)
 
 ## Build PWA
 ```bash
