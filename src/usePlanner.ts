@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 export type DailyEntry = {
   date: string; // YYYY-MM-DD format
   notes?: string;
-  completed: boolean;
+  lovey: boolean;
+  cutie: boolean;
   updatedAt: number;
 };
 
@@ -190,7 +191,8 @@ export function useTracker() {
       // Create new entry
       const newEntry: DailyEntry = {
         date,
-        completed: false,
+        lovey: false,
+        cutie: false,
         updatedAt: now,
         ...updates
       };

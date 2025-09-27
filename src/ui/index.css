@@ -11,3 +11,30 @@ body {
   background-color: #fefdfb;
   color: #92400e;
 }
+
+/* Make Cutie checkbox circular */
+input[type="checkbox"].cutie-checkbox {
+  border-radius: 50% !important;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: white;
+  border: 2px solid #d1d5db;
+  cursor: pointer;
+}
+
+input[type="checkbox"].cutie-checkbox:checked {
+  background-color: #8b5cf6;
+  border-color: #8b5cf6;
+}
+
+input[type="checkbox"].cutie-checkbox:checked::after {
+  content: '✓';
+  color: white;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}

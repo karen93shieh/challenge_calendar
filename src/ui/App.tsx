@@ -17,12 +17,12 @@ export default function App() {
 
   return (
     <div className="app-shell mx-auto w-full max-w-[1280px] px-3 sm:px-4 lg:px-5 pt-6 pb-6 bg-amber-25 min-h-screen">
-      <header className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <header className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold text-amber-900">Daily Tracker</h1>
           {saving && <span className="text-sm text-amber-600">Saving...</span>}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-32 justify-end">
           <button
             onClick={() => refresh()}
             className="px-3 py-2 rounded bg-amber-100 hover:bg-amber-200 text-amber-800 text-sm"
@@ -36,46 +36,46 @@ export default function App() {
             Settings
           </button>
         </div>
-        
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2">
-            <button
-              className={`px-3 py-1 rounded ${view === 'week' ? 'bg-amber-200 text-amber-900' : 'text-amber-700'}`}
-              onClick={() => setView('week')}
-            >
-              Week
-            </button>
-            <button
-              className={`px-3 py-1 rounded ${view === 'month' ? 'bg-amber-200 text-amber-900' : 'text-amber-700'}`}
-              onClick={() => setView('month')}
-            >
-              Month
-            </button>
-          </div>
-
-          <div className="ms-3 flex items-center gap-2">
-            <button
-              className="px-2 py-1 rounded border border-amber-300 text-amber-700 hover:bg-amber-100"
-              onClick={() => setCurrentDate(view === 'week' ? subMonths(currentDate, 1) : subMonths(currentDate, 1))}
-              aria-label="Previous"
-            >
-              ‹
-            </button>
-            <div className="text-sm opacity-80 text-amber-700">
-              {view === 'week'
-                ? `${format(startOfWeek(currentDate), 'MMM d')} – ${format(endOfWeek(currentDate), 'MMM d')}`
-                : format(currentDate, 'MMMM yyyy')}
-            </div>
-            <button
-              className="px-2 py-1 rounded border border-amber-300 text-amber-700 hover:bg-amber-100"
-              onClick={() => setCurrentDate(view === 'week' ? addMonths(currentDate, 1) : addMonths(currentDate, 1))}
-              aria-label="Next"
-            >
-              ›
-            </button>
-          </div>
-        </div>
       </header>
+      
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            className={`px-3 py-1 rounded ${view === 'week' ? 'bg-amber-200 text-amber-900' : 'text-amber-700'}`}
+            onClick={() => setView('week')}
+          >
+            Week
+          </button>
+          <button
+            className={`px-3 py-1 rounded ${view === 'month' ? 'bg-amber-200 text-amber-900' : 'text-amber-700'}`}
+            onClick={() => setView('month')}
+          >
+            Month
+          </button>
+        </div>
+
+        <div className="ms-3 flex items-center gap-2">
+          <button
+            className="px-2 py-1 rounded border border-amber-300 text-amber-700 hover:bg-amber-100"
+            onClick={() => setCurrentDate(view === 'week' ? subMonths(currentDate, 1) : subMonths(currentDate, 1))}
+            aria-label="Previous"
+          >
+            ‹
+          </button>
+          <div className="text-sm opacity-80 text-amber-700">
+            {view === 'week'
+              ? `${format(startOfWeek(currentDate), 'MMM d')} – ${format(endOfWeek(currentDate), 'MMM d')}`
+              : format(currentDate, 'MMMM yyyy')}
+          </div>
+          <button
+            className="px-2 py-1 rounded border border-amber-300 text-amber-700 hover:bg-amber-100"
+            onClick={() => setCurrentDate(view === 'week' ? addMonths(currentDate, 1) : addMonths(currentDate, 1))}
+            aria-label="Next"
+          >
+            ›
+          </button>
+        </div>
+      </div>
 
       {view === 'week' ? (
         <WeekView currentDate={currentDate} updateEntry={updateEntry} getEntry={getEntry} />
@@ -172,14 +172,14 @@ function WeekView({
   });
 
   return (
-    <section className="grid grid-cols-7 gap-2">
+    <section className="grid grid-cols-1 sm:grid-cols-7 gap-2">
       {weekDays.map((day) => {
         const dateStr = format(day, 'yyyy-MM-dd');
         const entry = getEntry(dateStr);
         const isToday = isSameDay(day, new Date());
         
         return (
-          <div key={day.toDateString()} className={`border rounded p-3 ${isToday ? 'ring-2 ring-amber-500' : 'border-amber-300'} bg-amber-50`}>
+          <div key={day.toDateString()} className={`border rounded p-3 ${isToday ? 'ring-2 ring-amber-800' : 'border-amber-300'} bg-amber-50`}>
             <div className="text-sm font-semibold mb-2 text-amber-900">
               {format(day, 'EEE d')}
             </div>
@@ -187,11 +187,20 @@ function WeekView({
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={entry?.completed || false}
-                  onChange={(e) => updateEntry(dateStr, { completed: e.target.checked })}
-                  className="rounded"
+                  checked={entry?.lovey || false}
+                  onChange={(e) => updateEntry(dateStr, { lovey: e.target.checked })}
+                  className="rounded w-4 h-4"
                 />
-                <span className="text-sm text-amber-800">Completed</span>
+                <span className="text-sm text-amber-800">Lovey</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={entry?.cutie || false}
+                  onChange={(e) => updateEntry(dateStr, { cutie: e.target.checked })}
+                  className="cutie-checkbox w-4 h-4"
+                />
+                <span className="text-sm text-amber-800">Cutie</span>
               </label>
               <textarea
                 placeholder="Notes..."
@@ -254,17 +263,25 @@ function MonthView({
               key={day.toDateString()}
               className={`h-20 border border-amber-300 rounded p-1 ${
                 isCurrentMonth ? 'bg-amber-50' : 'bg-amber-100'
-              } ${isToday ? 'ring-2 ring-amber-500' : ''}`}
+              } ${isToday ? 'ring-2 ring-amber-800' : ''}`}
             >
               <div className={`text-xs ${isCurrentMonth ? 'text-amber-900' : 'text-amber-500'}`}>
                 {format(day, 'd')}
               </div>
-              <div className="mt-1 flex items-center justify-center">
+              <div className="mt-1 flex items-center justify-center gap-1">
                 <input
                   type="checkbox"
-                  checked={entry?.completed || false}
-                  onChange={(e) => updateEntry(dateStr, { completed: e.target.checked })}
-                  className="rounded"
+                  checked={entry?.lovey || false}
+                  onChange={(e) => updateEntry(dateStr, { lovey: e.target.checked })}
+                  className="rounded w-3 h-3"
+                  title="Lovey"
+                />
+                <input
+                  type="checkbox"
+                  checked={entry?.cutie || false}
+                  onChange={(e) => updateEntry(dateStr, { cutie: e.target.checked })}
+                  className="cutie-checkbox w-3 h-3"
+                  title="Cutie"
                 />
               </div>
             </div>
