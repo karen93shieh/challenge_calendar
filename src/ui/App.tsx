@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { addDays, format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, subDays } from 'date-fns';
 import { useTracker } from '../usePlanner';
+import positiveResponses from '../positiveResponses.json';
 
 export default function App() {
   const { entries, loading, saving, updateEntry, getEntry, incrementCounter, decrementCounter, refresh } = useTracker();
@@ -11,6 +12,7 @@ export default function App() {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [showSettings, setShowSettings] = useState<boolean>(false);
   const [localNotes, setLocalNotes] = useState<Record<string, string>>({});
+  const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
 
   useEffect(() => {
     localStorage.setItem('calendar_view', view);
@@ -20,6 +22,24 @@ export default function App() {
   const handleNotesBlur = (dateStr: string) => {
     const notes = localNotes[dateStr] || '';
     updateEntry(dateStr, { notes });
+  };
+
+  // Helper function to show toast
+  const showToast = () => {
+    const randomIndex = Math.floor(Math.random() * positiveResponses.responses.length);
+    const message = positiveResponses.responses[randomIndex];
+    setToast({ message, visible: true });
+    
+    // Hide toast after 3 seconds
+    setTimeout(() => {
+      setToast({ message: '', visible: false });
+    }, 3000);
+  };
+
+  // Wrapper function for increment counter with toast
+  const handleIncrementCounter = (dateStr: string, counterType: 'lovey' | 'cutie') => {
+    incrementCounter(dateStr, counterType);
+    showToast();
   };
 
   return (
@@ -89,7 +109,7 @@ export default function App() {
           currentDate={currentDate} 
           updateEntry={updateEntry} 
           getEntry={getEntry}
-          incrementCounter={incrementCounter}
+          incrementCounter={handleIncrementCounter}
           decrementCounter={decrementCounter}
           localNotes={localNotes}
           setLocalNotes={setLocalNotes}
@@ -164,6 +184,13 @@ export default function App() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      
+      {/* Toast Notification */}
+      {toast.visible && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-amber-100 border border-amber-300 rounded-lg px-4 py-2 shadow-lg z-50">
+          <p className="text-amber-900 text-sm font-medium">{toast.message}</p>
         </div>
       )}
     </div>
