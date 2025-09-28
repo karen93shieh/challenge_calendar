@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { addDays, format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
+import { addDays, format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, subDays } from 'date-fns';
 import { useTracker } from '../usePlanner';
 
 export default function App() {
@@ -10,10 +10,17 @@ export default function App() {
   });
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [localNotes, setLocalNotes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     localStorage.setItem('calendar_view', view);
   }, [view]);
+
+  // Helper function to handle textarea blur
+  const handleNotesBlur = (dateStr: string) => {
+    const notes = localNotes[dateStr] || '';
+    updateEntry(dateStr, { notes });
+  };
 
   return (
     <div className="app-shell mx-auto w-full max-w-[1280px] px-3 sm:px-4 lg:px-5 pt-6 pb-6 bg-amber-25 min-h-screen">
@@ -23,62 +30,69 @@ export default function App() {
           {saving && <span className="text-sm text-amber-600">Saving...</span>}
         </div>
         <div className="flex gap-2 w-32 justify-end">
-          <button
+          {/* <button
             onClick={() => refresh()}
             className="px-3 py-2 rounded bg-amber-100 hover:bg-amber-200 text-amber-800 text-sm"
           >
             Refresh
-          </button>
-          <button
-            onClick={() => setShowSettings(true)}
+          </button> */}
+        <button
+          onClick={() => setShowSettings(true)}
             className="px-3 py-2 rounded bg-amber-200 hover:bg-amber-300 text-amber-900 text-sm"
-          >
-            Settings
-          </button>
+        >
+          Settings
+        </button>
         </div>
       </header>
-      
+
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-2">
-          <button
+          <div className="flex items-center gap-2">
+            <button
             className={`px-3 py-1 rounded ${view === 'week' ? 'bg-amber-200 text-amber-900' : 'text-amber-700'}`}
-            onClick={() => setView('week')}
-          >
-            Week
-          </button>
+              onClick={() => setView('week')}
+            >
+              Week
+            </button>
           <button
             className={`px-3 py-1 rounded ${view === 'month' ? 'bg-amber-200 text-amber-900' : 'text-amber-700'}`}
             onClick={() => setView('month')}
           >
             Month
           </button>
-        </div>
+          </div>
 
-        <div className="ms-3 flex items-center gap-2">
-          <button
+          <div className="ms-3 flex items-center gap-2">
+            <button
             className="px-2 py-1 rounded border border-amber-300 text-amber-700 hover:bg-amber-100"
-            onClick={() => setCurrentDate(view === 'week' ? subMonths(currentDate, 1) : subMonths(currentDate, 1))}
-            aria-label="Previous"
-          >
-            ‹
-          </button>
+            onClick={() => setCurrentDate(view === 'week' ? subDays(currentDate, 7) : subMonths(currentDate, 1))}
+              aria-label="Previous"
+            >
+              ‹
+            </button>
           <div className="text-sm opacity-80 text-amber-700">
             {view === 'week'
               ? `${format(startOfWeek(currentDate), 'MMM d')} – ${format(endOfWeek(currentDate), 'MMM d')}`
               : format(currentDate, 'MMMM yyyy')}
-          </div>
-          <button
+            </div>
+            <button
             className="px-2 py-1 rounded border border-amber-300 text-amber-700 hover:bg-amber-100"
-            onClick={() => setCurrentDate(view === 'week' ? addMonths(currentDate, 1) : addMonths(currentDate, 1))}
-            aria-label="Next"
-          >
-            ›
-          </button>
+            onClick={() => setCurrentDate(view === 'week' ? addDays(currentDate, 7) : addMonths(currentDate, 1))}
+              aria-label="Next"
+            >
+              ›
+            </button>
+          </div>
         </div>
-      </div>
 
       {view === 'week' ? (
-        <WeekView currentDate={currentDate} updateEntry={updateEntry} getEntry={getEntry} />
+        <WeekView 
+          currentDate={currentDate} 
+          updateEntry={updateEntry} 
+          getEntry={getEntry}
+          localNotes={localNotes}
+          setLocalNotes={setLocalNotes}
+          handleNotesBlur={handleNotesBlur}
+        />
       ) : (
         <MonthView currentDate={currentDate} updateEntry={updateEntry} getEntry={getEntry} />
       )}
@@ -100,7 +114,7 @@ export default function App() {
               </div>
               <div>
                 <label className="block text-xs text-amber-700 mb-1">Repository Owner</label>
-                <input
+                  <input
                   type="text"
                   className="w-full border border-amber-300 bg-amber-50 rounded px-3 py-2 text-amber-900"
                   placeholder="username"
@@ -110,7 +124,7 @@ export default function App() {
               </div>
               <div>
                 <label className="block text-xs text-amber-700 mb-1">Repository Name</label>
-                <input
+                  <input
                   type="text"
                   className="w-full border border-amber-300 bg-amber-50 rounded px-3 py-2 text-amber-900"
                   placeholder="repo-name"
@@ -159,11 +173,17 @@ export default function App() {
 function WeekView({ 
   currentDate, 
   updateEntry, 
-  getEntry 
+  getEntry,
+  localNotes,
+  setLocalNotes,
+  handleNotesBlur
 }: { 
   currentDate: Date;
   updateEntry: (date: string, updates: any) => void;
   getEntry: (date: string) => any;
+  localNotes: Record<string, string>;
+  setLocalNotes: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  handleNotesBlur: (dateStr: string) => void;
 }) {
   const weekStart = startOfWeek(currentDate);
   const weekDays = eachDayOfInterval({
@@ -177,7 +197,7 @@ function WeekView({
         const dateStr = format(day, 'yyyy-MM-dd');
         const entry = getEntry(dateStr);
         const isToday = isSameDay(day, new Date());
-        
+
         return (
           <div key={day.toDateString()} className={`border rounded p-3 ${isToday ? 'ring-2 ring-amber-800' : 'border-amber-300'} bg-amber-50`}>
             <div className="text-sm font-semibold mb-2 text-amber-900">
@@ -194,8 +214,8 @@ function WeekView({
                 <span className="text-sm text-amber-800">Lovey</span>
               </label>
               <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+              <input
+                type="checkbox"
                   checked={entry?.cutie || false}
                   onChange={(e) => updateEntry(dateStr, { cutie: e.target.checked })}
                   className="cutie-checkbox w-4 h-4"
@@ -204,8 +224,9 @@ function WeekView({
               </label>
               <textarea
                 placeholder="Notes..."
-                value={entry?.notes || ''}
-                onChange={(e) => updateEntry(dateStr, { notes: e.target.value })}
+                value={localNotes[dateStr] !== undefined ? localNotes[dateStr] : (entry?.notes || '')}
+                onChange={(e) => setLocalNotes(prev => ({ ...prev, [dateStr]: e.target.value }))}
+                onBlur={() => handleNotesBlur(dateStr)}
                 className="w-full h-20 p-2 text-sm border border-amber-300 rounded bg-amber-50 text-amber-900 resize-none"
               />
             </div>
@@ -257,9 +278,9 @@ function MonthView({
           const isToday = isSameDay(day, new Date());
           const dateStr = format(day, 'yyyy-MM-dd');
           const entry = getEntry(dateStr);
-          
-          return (
-            <div
+
+                return (
+                  <div
               key={day.toDateString()}
               className={`h-20 border border-amber-300 rounded p-1 ${
                 isCurrentMonth ? 'bg-amber-50' : 'bg-amber-100'
@@ -267,7 +288,7 @@ function MonthView({
             >
               <div className={`text-xs ${isCurrentMonth ? 'text-amber-900' : 'text-amber-500'}`}>
                 {format(day, 'd')}
-              </div>
+                    </div>
               <div className="mt-1 flex items-center justify-center gap-1">
                 <input
                   type="checkbox"
@@ -276,18 +297,18 @@ function MonthView({
                   className="rounded w-3 h-3"
                   title="Lovey"
                 />
-                <input
-                  type="checkbox"
+                      <input
+                        type="checkbox"
                   checked={entry?.cutie || false}
                   onChange={(e) => updateEntry(dateStr, { cutie: e.target.checked })}
                   className="cutie-checkbox w-3 h-3"
                   title="Cutie"
                 />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
     </section>
   );
 }
