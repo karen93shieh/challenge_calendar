@@ -237,7 +237,7 @@ function WeekView({
               {format(day, 'EEE d')}
             </div>
             <div className="space-y-2">
-              <label className="flex items-center gap-2">
+              <label className="flex items-center gap-0">
                 <div
                   role="checkbox"
                   aria-checked={entry?.lovey || false}
@@ -249,14 +249,12 @@ function WeekView({
                       updateEntry(dateStr, { lovey: !entry?.lovey });
                     }
                   }}
-                  className={`w-4 h-4 rounded-sm border transition-colors cursor-pointer ${
-                    entry?.lovey ? 'bg-blue-500 border-amber-800' : 'bg-transparent border-amber-800'
-                  }`}
+                  className={`heart-checkbox lovey ${entry?.lovey ? 'checked' : ''}`}
                   title="Lovey"
                 />
                 <span className="text-sm text-amber-800">Lovey</span>
               </label>
-              <label className="flex items-center gap-2">
+              <label className="flex items-center gap-0">
                 <div
                   role="checkbox"
                   aria-checked={entry?.cutie || false}
@@ -268,9 +266,7 @@ function WeekView({
                       updateEntry(dateStr, { cutie: !entry?.cutie });
                     }
                   }}
-                  className={`w-4 h-4 rounded-full border transition-colors cursor-pointer ${
-                    entry?.cutie ? 'bg-green-500 border-amber-800' : 'bg-transparent border-amber-800'
-                  }`}
+                  className={`heart-checkbox cutie ${entry?.cutie ? 'checked' : ''}`}
                   title="Cutie"
                 />
                 <span className="text-sm text-amber-800">Cutie</span>
@@ -392,7 +388,7 @@ function MonthView({
               <div className={`text-xs ${isCurrentMonth ? 'text-amber-900' : 'text-amber-500'}`}>
                 {format(day, 'd')}
                     </div>
-              <div className="mt-1 flex items-center justify-center gap-1">
+              <div className="mt-0.5 flex flex-col sm:flex-row items-center justify-center gap-0 monthly">
                 <div
                   role="checkbox"
                   aria-checked={entry?.lovey || false}
@@ -404,9 +400,7 @@ function MonthView({
                       updateEntry(dateStr, { lovey: !entry?.lovey });
                     }
                   }}
-                  className={`w-4 h-4 rounded-sm border transition-colors cursor-pointer ${
-                    entry?.lovey ? 'bg-blue-500 border-amber-800' : 'bg-transparent border-amber-800'
-                  }`}
+                  className={`heart-checkbox lovey ${entry?.lovey ? 'checked' : ''}`}
                   title="Lovey"
                 />
                 <div
@@ -420,9 +414,7 @@ function MonthView({
                       updateEntry(dateStr, { cutie: !entry?.cutie });
                     }
                   }}
-                  className={`w-4 h-4 rounded-full border transition-colors cursor-pointer ${
-                    entry?.cutie ? 'bg-green-500 border-amber-800' : 'bg-transparent border-amber-800'
-                  }`}
+                  className={`heart-checkbox cutie ${entry?.cutie ? 'checked' : ''}`}
                   title="Cutie"
                 />
                     </div>
