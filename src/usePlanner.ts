@@ -6,6 +6,8 @@ export type DailyEntry = {
   notes?: string;
   lovey: boolean;
   cutie: boolean;
+  loveyCount: number;
+  cutieCount: number;
   updatedAt: number;
 };
 
@@ -193,6 +195,8 @@ export function useTracker() {
         date,
         lovey: false,
         cutie: false,
+        loveyCount: 0,
+        cutieCount: 0,
         updatedAt: now,
         ...updates
       };
@@ -202,6 +206,51 @@ export function useTracker() {
 
   function getEntry(date: string): DailyEntry | undefined {
     return entries.find(e => e.date === date);
+  }
+
+  function incrementCounter(date: string, counterType: 'lovey' | 'cutie') {
+    const entry = getEntry(date);
+    const now = Date.now();
+    
+    if (entry) {
+      const currentCount = entry[`${counterType}Count`] || 0;
+      const updatedEntry = {
+        ...entry,
+        [`${counterType}Count`]: currentCount + 1,
+        updatedAt: now
+      };
+      
+      updateEntry(date, updatedEntry);
+    } else {
+      const newEntry: DailyEntry = {
+        date,
+        lovey: false,
+        cutie: false,
+        loveyCount: counterType === 'lovey' ? 1 : 0,
+        cutieCount: counterType === 'cutie' ? 1 : 0,
+        updatedAt: now
+      };
+      updateEntry(date, newEntry);
+    }
+  }
+
+  function decrementCounter(date: string, counterType: 'lovey' | 'cutie') {
+    const entry = getEntry(date);
+    const now = Date.now();
+    
+    if (entry) {
+      const currentCount = entry[`${counterType}Count`] || 0;
+      const updatedEntry = {
+        ...entry,
+        [`${counterType}Count`]: Math.max(0, currentCount - 1),
+        updatedAt: now
+      };
+      
+      updateEntry(date, updatedEntry);
+    } else {
+      // Don't create new entry for decrement if it doesn't exist
+      return;
+    }
   }
 
   // Merge local changes with remote data, preferring newer updates
@@ -230,6 +279,8 @@ export function useTracker() {
     saving,
     updateEntry,
     getEntry,
+    incrementCounter,
+    decrementCounter,
     refresh: loadFromRepository
   };
 }

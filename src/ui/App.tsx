@@ -3,7 +3,7 @@ import { addDays, format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, each
 import { useTracker } from '../usePlanner';
 
 export default function App() {
-  const { entries, loading, saving, updateEntry, getEntry, refresh } = useTracker();
+  const { entries, loading, saving, updateEntry, getEntry, incrementCounter, decrementCounter, refresh } = useTracker();
   const [view, setView] = useState<'week' | 'month'>(() => {
     const v = localStorage.getItem('calendar_view');
     return v === 'month' ? 'month' : 'week';
@@ -89,6 +89,8 @@ export default function App() {
           currentDate={currentDate} 
           updateEntry={updateEntry} 
           getEntry={getEntry}
+          incrementCounter={incrementCounter}
+          decrementCounter={decrementCounter}
           localNotes={localNotes}
           setLocalNotes={setLocalNotes}
           handleNotesBlur={handleNotesBlur}
@@ -174,6 +176,8 @@ function WeekView({
   currentDate, 
   updateEntry, 
   getEntry,
+  incrementCounter,
+  decrementCounter,
   localNotes,
   setLocalNotes,
   handleNotesBlur
@@ -181,6 +185,8 @@ function WeekView({
   currentDate: Date;
   updateEntry: (date: string, updates: any) => void;
   getEntry: (date: string) => any;
+  incrementCounter: (date: string, counterType: 'lovey' | 'cutie') => void;
+  decrementCounter: (date: string, counterType: 'lovey' | 'cutie') => void;
   localNotes: Record<string, string>;
   setLocalNotes: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   handleNotesBlur: (dateStr: string) => void;
@@ -222,6 +228,56 @@ function WeekView({
                 />
                 <span className="text-sm text-amber-800">Cutie</span>
               </label>
+              
+              {/* Counter Section */}
+              <div className="space-y-2">
+                {/* Lovey Counter */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-amber-700">Lovey Count:</span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => decrementCounter(dateStr, 'lovey')}
+                      className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200"
+                      disabled={!entry || (entry?.loveyCount || 0) <= 0}
+                    >
+                      -
+                    </button>
+                    <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded min-w-[2rem] text-center">
+                      {entry?.loveyCount || 0}
+                    </span>
+                    <button
+                      onClick={() => incrementCounter(dateStr, 'lovey')}
+                      className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Cutie Counter */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-amber-700">Cutie Count:</span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => decrementCounter(dateStr, 'cutie')}
+                      className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200"
+                      disabled={!entry || (entry?.cutieCount || 0) <= 0}
+                    >
+                      -
+                    </button>
+                    <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded min-w-[2rem] text-center">
+                      {entry?.cutieCount || 0}
+                    </span>
+                    <button
+                      onClick={() => incrementCounter(dateStr, 'cutie')}
+                      className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
               <textarea
                 placeholder="Notes..."
                 value={localNotes[dateStr] !== undefined ? localNotes[dateStr] : (entry?.notes || '')}
