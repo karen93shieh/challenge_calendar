@@ -388,7 +388,7 @@ function MonthView({
               <div className={`text-xs ${isCurrentMonth ? 'text-amber-900' : 'text-amber-500'}`}>
                 {format(day, 'd')}
                     </div>
-              <div className="mt-0.5 flex flex-col sm:flex-row items-center justify-center gap-0 monthly">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-0 monthly">
                 <div
                   role="checkbox"
                   aria-checked={entry?.lovey || false}

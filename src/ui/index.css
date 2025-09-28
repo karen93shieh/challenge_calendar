@@ -47,6 +47,11 @@ body {
   color: #10b981;
 }
 
+/* Reduce gaps between stacked hearts in monthly view */
+.monthly .heart-checkbox {
+  margin: -2px 0;
+}
+
 /* Bigger hearts for monthly view */
 .monthly .heart-checkbox {
   width: 32px;
