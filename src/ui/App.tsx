@@ -58,7 +58,7 @@ export default function App() {
             onClick={() => setView('month')}
           >
             Month
-          </button>
+            </button>
           </div>
 
           <div className="ms-3 flex items-center gap-2">
@@ -85,7 +85,7 @@ export default function App() {
         </div>
 
       {view === 'week' ? (
-        <WeekView 
+        <WeekView
           currentDate={currentDate} 
           updateEntry={updateEntry} 
           getEntry={getEntry}
@@ -211,20 +211,40 @@ function WeekView({
             </div>
             <div className="space-y-2">
               <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={entry?.lovey || false}
-                  onChange={(e) => updateEntry(dateStr, { lovey: e.target.checked })}
-                  className="rounded w-4 h-4"
+                <div
+                  role="checkbox"
+                  aria-checked={entry?.lovey || false}
+                  tabIndex={0}
+                  onClick={() => updateEntry(dateStr, { lovey: !entry?.lovey })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      updateEntry(dateStr, { lovey: !entry?.lovey });
+                    }
+                  }}
+                  className={`w-4 h-4 rounded-sm border transition-colors cursor-pointer ${
+                    entry?.lovey ? 'bg-blue-500 border-amber-800' : 'bg-transparent border-amber-800'
+                  }`}
+                  title="Lovey"
                 />
                 <span className="text-sm text-amber-800">Lovey</span>
               </label>
               <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                  checked={entry?.cutie || false}
-                  onChange={(e) => updateEntry(dateStr, { cutie: e.target.checked })}
-                  className="cutie-checkbox w-4 h-4"
+                <div
+                  role="checkbox"
+                  aria-checked={entry?.cutie || false}
+                  tabIndex={0}
+                  onClick={() => updateEntry(dateStr, { cutie: !entry?.cutie })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      updateEntry(dateStr, { cutie: !entry?.cutie });
+                    }
+                  }}
+                  className={`w-4 h-4 rounded-full border transition-colors cursor-pointer ${
+                    entry?.cutie ? 'bg-green-500 border-amber-800' : 'bg-transparent border-amber-800'
+                  }`}
+                  title="Cutie"
                 />
                 <span className="text-sm text-amber-800">Cutie</span>
               </label>
@@ -346,18 +366,36 @@ function MonthView({
                 {format(day, 'd')}
                     </div>
               <div className="mt-1 flex items-center justify-center gap-1">
-                <input
-                  type="checkbox"
-                  checked={entry?.lovey || false}
-                  onChange={(e) => updateEntry(dateStr, { lovey: e.target.checked })}
-                  className="rounded w-3 h-3"
+                <div
+                  role="checkbox"
+                  aria-checked={entry?.lovey || false}
+                  tabIndex={0}
+                  onClick={() => updateEntry(dateStr, { lovey: !entry?.lovey })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      updateEntry(dateStr, { lovey: !entry?.lovey });
+                    }
+                  }}
+                  className={`w-4 h-4 rounded-sm border transition-colors cursor-pointer ${
+                    entry?.lovey ? 'bg-blue-500 border-amber-800' : 'bg-transparent border-amber-800'
+                  }`}
                   title="Lovey"
                 />
-                      <input
-                        type="checkbox"
-                  checked={entry?.cutie || false}
-                  onChange={(e) => updateEntry(dateStr, { cutie: e.target.checked })}
-                  className="cutie-checkbox w-3 h-3"
+                <div
+                  role="checkbox"
+                  aria-checked={entry?.cutie || false}
+                  tabIndex={0}
+                  onClick={() => updateEntry(dateStr, { cutie: !entry?.cutie })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      updateEntry(dateStr, { cutie: !entry?.cutie });
+                    }
+                  }}
+                  className={`w-4 h-4 rounded-full border transition-colors cursor-pointer ${
+                    entry?.cutie ? 'bg-green-500 border-amber-800' : 'bg-transparent border-amber-800'
+                  }`}
                   title="Cutie"
                 />
                     </div>
